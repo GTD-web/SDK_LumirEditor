@@ -13,8 +13,6 @@
 /* 포커스 상태 스타일 */
 .lumirEditor:focus-within {
   outline: 2px solid transparent;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 2px black;
 }
 
 /* BlockNote 에디터 내부 폰트 설정 */
