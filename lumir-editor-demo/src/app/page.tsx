@@ -2,11 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import type { DefaultPartialBlock } from "@kingdoo/editor";
+import type { DefaultPartialBlock } from "@lumir-company/editor";
 
 // SSR 비활성화로 에디터 동적 로드
 const LumirEditor = dynamic(
-  () => import("@kingdoo/editor").then((m) => ({ default: m.LumirEditor })),
+  () =>
+    import("@lumir-company/editor").then((m) => ({ default: m.LumirEditor })),
   { ssr: false }
 );
 
@@ -17,10 +18,12 @@ export default function Home() {
     <div className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
         {/* 제목 */}
-        <h1 className="text-2xl font-bold mb-6">🖼️ S3 이미지 업로드 테스트</h1>
+        <h1 className="text-2xl font-bold mb-6">
+          🖼️ S3 이미지 업로드 테스트 npm package DEMO
+        </h1>
 
         {/* 에디터 */}
-        <div className="w-full h-[500px] border border-gray-200 rounded-lg">
+        <div className="w-full h-[100px] rounded-lg">
           <LumirEditor
             s3Upload={{
               apiEndpoint: "/api/s3/presigned",

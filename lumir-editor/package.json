@@ -1,6 +1,6 @@
 {
   "name": "@lumir-company/editor",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": false,
   "description": "Image-only BlockNote rich text editor with S3 upload and optimized loading spinner",
   "keywords": [

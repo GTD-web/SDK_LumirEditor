@@ -21,7 +21,7 @@ export default function Home() {
         <h1 className="text-2xl font-bold mb-6">🖼️ S3 이미지 업로드 테스트</h1>
 
         {/* 에디터 */}
-        <div className="w-full h-[500px] border border-gray-200 rounded-lg">
+        <div className="w-full h-[100px] rounded-lg">
           <LumirEditor
             s3Upload={{
               apiEndpoint: "/api/s3/presigned",
