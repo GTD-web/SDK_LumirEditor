@@ -40,8 +40,18 @@ function cn(...inputs) {
 }
 
 // src/utils/s3-uploader.ts
+var generateUUID = () => {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === "x" ? r : r & 3 | 8;
+    return v.toString(16);
+  });
+};
 var createS3Uploader = (config) => {
-  const { apiEndpoint, env, path } = config;
+  const { apiEndpoint, env, path, fileNameTransform, appendUUID } = config;
   if (!apiEndpoint || apiEndpoint.trim() === "") {
     throw new Error(
       "apiEndpoint is required for S3 upload. Please provide a valid API endpoint."
@@ -53,9 +63,23 @@ var createS3Uploader = (config) => {
   if (!path || path.trim() === "") {
     throw new Error("path is required and cannot be empty.");
   }
+  const appendUUIDToFileName = (filename) => {
+    const lastDotIndex = filename.lastIndexOf(".");
+    if (lastDotIndex === -1) {
+      return `${filename}_${generateUUID()}`;
+    }
+    const name = filename.substring(0, lastDotIndex);
+    const ext = filename.substring(lastDotIndex);
+    return `${name}_${generateUUID()}${ext}`;
+  };
   const generateHierarchicalFileName = (file) => {
-    const now = /* @__PURE__ */ new Date();
-    const filename = file.name;
+    let filename = file.name;
+    if (fileNameTransform) {
+      filename = fileNameTransform(filename, file);
+    }
+    if (appendUUID) {
+      filename = appendUUIDToFileName(filename);
+    }
     return `${env}/${path}/${filename}`;
   };
   return async (file) => {
@@ -271,9 +295,28 @@ function LumirEditor({
       allowFileUpload
     );
   }, [disableExtensions, allowVideoUpload, allowAudioUpload, allowFileUpload]);
+  const fileNameTransformRef = (0, import_react.useRef)(s3Upload?.fileNameTransform);
+  (0, import_react.useEffect)(() => {
+    fileNameTransformRef.current = s3Upload?.fileNameTransform;
+  }, [s3Upload?.fileNameTransform]);
   const memoizedS3Upload = (0, import_react.useMemo)(() => {
-    return s3Upload;
-  }, [s3Upload?.apiEndpoint, s3Upload?.env, s3Upload?.path]);
+    if (!s3Upload) return void 0;
+    return {
+      apiEndpoint: s3Upload.apiEndpoint,
+      env: s3Upload.env,
+      path: s3Upload.path,
+      appendUUID: s3Upload.appendUUID,
+      // 최신 콜백을 항상 사용하도록 ref를 통해 접근
+      fileNameTransform: (originalName, file) => {
+        return fileNameTransformRef.current ? fileNameTransformRef.current(originalName, file) : originalName;
+      }
+    };
+  }, [
+    s3Upload?.apiEndpoint,
+    s3Upload?.env,
+    s3Upload?.path,
+    s3Upload?.appendUUID
+  ]);
   const editor = (0, import_react2.useCreateBlockNote)(
     {
       initialContent: validatedContent,

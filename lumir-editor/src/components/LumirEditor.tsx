@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useCallback, useState } from "react";
+import { useEffect, useMemo, useCallback, useState, useRef } from "react";
 import {
   useCreateBlockNote,
   SideMenu as BlockSideMenu,
@@ -248,10 +248,34 @@ export default function LumirEditor({
     );
   }, [disableExtensions, allowVideoUpload, allowAudioUpload, allowFileUpload]);
 
+  // fileNameTransform 콜백을 ref로 관리 (에디터 재생성 방지)
+  const fileNameTransformRef = useRef(s3Upload?.fileNameTransform);
+  useEffect(() => {
+    fileNameTransformRef.current = s3Upload?.fileNameTransform;
+  }, [s3Upload?.fileNameTransform]);
+
   // S3 업로드 설정 메모이제이션 (객체 참조 안정화)
+  // 주의: fileNameTransform은 ref로 관리하므로 의존성에서 제외
   const memoizedS3Upload = useMemo(() => {
-    return s3Upload;
-  }, [s3Upload?.apiEndpoint, s3Upload?.env, s3Upload?.path]);
+    if (!s3Upload) return undefined;
+    return {
+      apiEndpoint: s3Upload.apiEndpoint,
+      env: s3Upload.env,
+      path: s3Upload.path,
+      appendUUID: s3Upload.appendUUID,
+      // 최신 콜백을 항상 사용하도록 ref를 통해 접근
+      fileNameTransform: ((originalName: string, file: File) => {
+        return fileNameTransformRef.current
+          ? fileNameTransformRef.current(originalName, file)
+          : originalName;
+      }) as ((originalName: string, file: File) => string) | undefined,
+    };
+  }, [
+    s3Upload?.apiEndpoint,
+    s3Upload?.env,
+    s3Upload?.path,
+    s3Upload?.appendUUID,
+  ]);
 
   const editor = useCreateBlockNote<
     DefaultBlockSchema,

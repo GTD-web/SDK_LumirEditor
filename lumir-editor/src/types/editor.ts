@@ -38,6 +38,10 @@ export interface LumirEditorProps {
     apiEndpoint: string;
     env: "development" | "production";
     path: string;
+    /** 파일명 변환 콜백 - 업로드 전 파일명을 변경할 수 있습니다 */
+    fileNameTransform?: (originalName: string, file: File) => string;
+    /** true일 경우 파일명 뒤에 UUID를 자동으로 추가합니다 (예: image_abc123.png) */
+    appendUUID?: boolean;
   };
   // 미디어 업로드 허용 범위(기본 비활성)
   allowVideoUpload?: boolean;

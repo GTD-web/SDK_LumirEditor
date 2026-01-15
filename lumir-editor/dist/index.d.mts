@@ -22,6 +22,10 @@ interface LumirEditorProps {
         apiEndpoint: string;
         env: "development" | "production";
         path: string;
+        /** 파일명 변환 콜백 - 업로드 전 파일명을 변경할 수 있습니다 */
+        fileNameTransform?: (originalName: string, file: File) => string;
+        /** true일 경우 파일명 뒤에 UUID를 자동으로 추가합니다 (예: image_abc123.png) */
+        appendUUID?: boolean;
     };
     allowVideoUpload?: boolean;
     allowAudioUpload?: boolean;
@@ -134,6 +138,10 @@ interface S3UploaderConfig {
     apiEndpoint: string;
     env: "production" | "development";
     path: string;
+    /** 파일명 변환 콜백 - 업로드 전 파일명을 변경할 수 있습니다 */
+    fileNameTransform?: (originalName: string, file: File) => string;
+    /** true일 경우 파일명 뒤에 UUID를 자동으로 추가합니다 (예: image_abc123.png) */
+    appendUUID?: boolean;
 }
 declare const createS3Uploader: (config: S3UploaderConfig) => (file: File) => Promise<string>;
 
