@@ -37,8 +37,8 @@ export default function Home() {
               apiEndpoint: "/api/s3/presigned",
               env: "development",
               path: "test",
-              fileNameTransform: (originalName, file) => {
-                return `${inputValue}`;
+              fileNameTransform: (nameWithoutExt, file) => {
+                return `${inputValue}_${nameWithoutExt}`;
               },
               appendUUID: true,
             }}

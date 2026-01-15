@@ -1,6 +1,6 @@
 # LumirEditor
 
-🖼️ **이미지 전용** BlockNote 기반 Rich Text 에디터
+**이미지 전용** BlockNote 기반 Rich Text 에디터
 
 [![npm version](https://img.shields.io/npm/v/@lumir-company/editor.svg)](https://www.npmjs.com/package/@lumir-company/editor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -9,32 +9,32 @@
 
 ---
 
-## 📋 목차
+## 목차
 
-- [특징](#-특징)
-- [빠른 시작](#-빠른-시작)
-- [이미지 업로드](#-이미지-업로드)
+- [특징](#특징)
+- [빠른 시작](#빠른-시작)
+- [이미지 업로드](#이미지-업로드)
   - [S3 업로드 설정](#1-s3-업로드-권장)
-  - [파일명 커스터마이징](#-파일명-커스터마이징)
+  - [파일명 커스터마이징](#파일명-커스터마이징)
   - [커스텀 업로더](#2-커스텀-업로더)
-- [Props API](#-props-api)
-- [사용 예제](#-사용-예제)
-- [스타일링](#-스타일링)
-- [트러블슈팅](#-트러블슈팅)
+- [Props API](#props-api)
+- [사용 예제](#사용-예제)
+- [스타일링](#스타일링)
+- [트러블슈팅](#트러블슈팅)
 
 ---
 
-## ✨ 특징
+## 특징
 
-| 특징                       | 설명                                                   |
-| -------------------------- | ------------------------------------------------------ |
-| 🖼️ **이미지 전용**         | 이미지 업로드/드래그앤드롭만 지원 (비디오/오디오 제거) |
-| ☁️ **S3 연동**             | Presigned URL 기반 S3 업로드 내장                      |
-| 🏷️ **파일명 커스터마이징** | 업로드 파일명 변경 콜백 + UUID 자동 추가 지원          |
-| ⏳ **로딩 스피너**         | 이미지 업로드 중 자동 스피너 표시                      |
-| 🚀 **성능 최적화**         | 애니메이션 비활성화로 빠른 렌더링                      |
-| 📝 **TypeScript**          | 완전한 타입 안전성                                     |
-| 🎨 **테마 지원**           | 라이트/다크 테마 및 커스텀 테마                        |
+| 특징                    | 설명                                                   |
+| ----------------------- | ------------------------------------------------------ |
+| **이미지 전용**         | 이미지 업로드/드래그앤드롭만 지원 (비디오/오디오 제거) |
+| **S3 연동**             | Presigned URL 기반 S3 업로드 내장                      |
+| **파일명 커스터마이징** | 업로드 파일명 변경 콜백 + UUID 자동 추가 지원          |
+| **로딩 스피너**         | 이미지 업로드 중 자동 스피너 표시                      |
+| **성능 최적화**         | 애니메이션 비활성화로 빠른 렌더링                      |
+| **TypeScript**          | 완전한 타입 안전성                                     |
+| **테마 지원**           | 라이트/다크 테마 및 커스텀 테마                        |
 
 ### 지원 이미지 형식
 
@@ -44,7 +44,7 @@ PNG, JPEG/JPG, GIF, WebP, BMP, SVG
 
 ---
 
-## 🚀 빠른 시작
+## 빠른 시작
 
 ### 1. 설치
 
@@ -74,7 +74,7 @@ export default function App() {
 }
 ```
 
-> ⚠️ **중요**: `style.css`를 임포트하지 않으면 에디터가 정상 작동하지 않습니다.
+> **중요**: `style.css`를 임포트하지 않으면 에디터가 정상 작동하지 않습니다.
 
 ### 3. Next.js에서 사용
 
@@ -102,7 +102,7 @@ export default function EditorPage() {
 
 ---
 
-## 🖼️ 이미지 업로드
+## 이미지 업로드
 
 ### 1. S3 업로드 (권장)
 
@@ -140,9 +140,11 @@ production/blog/images/my-photo.png
 
 ---
 
-### 📝 파일명 커스터마이징
+### 파일명 커스터마이징
 
 여러 이미지를 동시에 업로드할 때 파일명 중복을 방지하고 관리하기 쉽게 만드는 기능입니다.
+
+> **참고**: 기본적으로 확장자는 자동으로 붙습니다. `preserveExtension: false`로 설정하면 확장자를 붙이지 않습니다.
 
 #### 옵션 1: UUID 자동 추가
 
@@ -172,10 +174,11 @@ production/blog/images/my-photo.png
     apiEndpoint: "/api/s3/presigned",
     env: "production",
     path: "uploads",
-    fileNameTransform: (originalName, file) => {
-      // 예: 사용자 ID 추가
+    fileNameTransform: (nameWithoutExt, file) => {
+      // nameWithoutExt는 확장자가 제거된 파일명 (예: "photo")
+      // 확장자는 자동으로 붙습니다
       const userId = getCurrentUserId();
-      return `${userId}_${originalName}`;
+      return `${userId}_${nameWithoutExt}`;
     },
   }}
 />
@@ -185,7 +188,9 @@ production/blog/images/my-photo.png
 
 ```
 원본: photo.png
-업로드: user123_photo.png
+→ nameWithoutExt: "photo"
+→ 변환 후: "user123_photo"
+→ 최종: user123_photo.png
 ```
 
 #### 옵션 3: 조합 사용 (권장)
@@ -196,7 +201,7 @@ production/blog/images/my-photo.png
     apiEndpoint: "/api/s3/presigned",
     env: "production",
     path: "uploads",
-    fileNameTransform: (originalName) => `user123_${originalName}`,
+    fileNameTransform: (nameWithoutExt) => `user123_${nameWithoutExt}`,
     appendUUID: true, // 변환 후 UUID 추가
   }}
 />
@@ -206,8 +211,10 @@ production/blog/images/my-photo.png
 
 ```
 원본: photo.png
-1. fileNameTransform 적용: user123_photo.png
-2. appendUUID 적용: user123_photo_550e8400-e29b-41d4.png
+→ nameWithoutExt: "photo"
+1. fileNameTransform 적용: "user123_photo"
+2. appendUUID 적용: "user123_photo_550e8400-e29b-41d4"
+3. 확장자 붙이기: user123_photo_550e8400-e29b-41d4.png
 ```
 
 #### 실전 예제: 타임스탬프 + UUID
@@ -220,11 +227,10 @@ function MyEditor() {
         apiEndpoint: "/api/s3/presigned",
         env: "production",
         path: "uploads",
-        fileNameTransform: (originalName, file) => {
+        fileNameTransform: (nameWithoutExt, file) => {
+          // nameWithoutExt는 이미 확장자가 제거됨
           const timestamp = new Date().toISOString().split("T")[0]; // 2024-01-15
-          const ext = originalName.split(".").pop();
-          const nameWithoutExt = originalName.replace(`.${ext}`, "");
-          return `${timestamp}_${nameWithoutExt}.${ext}`;
+          return `${timestamp}_${nameWithoutExt}`;
         },
         appendUUID: true,
       }}
@@ -236,7 +242,41 @@ function MyEditor() {
 **결과:**
 
 ```
-2024-01-15_photo_550e8400-e29b-41d4.png
+원본: photo.png
+→ nameWithoutExt: "photo"
+1. fileNameTransform: "2024-01-15_photo"
+2. appendUUID: "2024-01-15_photo_550e8400-e29b-41d4"
+3. 확장자 붙이기: 2024-01-15_photo_550e8400-e29b-41d4.png
+```
+
+#### 옵션 4: 확장자 제거 (preserveExtension: false)
+
+```tsx
+<LumirEditor
+  s3Upload={{
+    apiEndpoint: "/api/s3/presigned",
+    env: "production",
+    path: "uploads",
+    fileNameTransform: (nameWithoutExt) => `${nameWithoutExt}_custom`,
+    preserveExtension: false, // 확장자 안 붙임
+  }}
+/>
+```
+
+**결과:**
+
+```
+원본: photo.png
+→ nameWithoutExt: "photo"
+→ 변환 후: "photo_custom"
+→ 최종: photo_custom (확장자 없음)
+```
+
+**사용 사례**: WebP 변환 등 서버에서 확장자를 변경하는 경우
+
+```tsx
+fileNameTransform: (nameWithoutExt) => `${nameWithoutExt}.webp`,
+preserveExtension: false,
 ```
 
 ---
@@ -289,7 +329,7 @@ const imageUrl = await s3Uploader(imageFile);
 
 ---
 
-## 📚 Props API
+## Props API
 
 ### 핵심 Props
 
@@ -313,8 +353,9 @@ interface S3UploaderConfig {
   path: string; // S3 저장 경로
 
   // 선택 (파일명 커스터마이징)
-  fileNameTransform?: (originalName: string, file: File) => string;
-  appendUUID?: boolean; // true: 파일명 뒤에 UUID 추가
+  fileNameTransform?: (nameWithoutExt: string, file: File) => string; // 확장자 제외한 이름 변환
+  appendUUID?: boolean; // true: 파일명 뒤에 UUID 추가 (확장자 앞에 삽입)
+  preserveExtension?: boolean; // false: 확장자를 붙이지 않음 (기본: true)
 }
 ```
 
@@ -329,7 +370,14 @@ interface LumirEditorProps {
   initialContent?: DefaultPartialBlock[] | string; // 초기 콘텐츠 (블록 배열 또는 JSON 문자열)
   initialEmptyBlocks?: number; // 초기 빈 블록 개수 (기본: 3)
   uploadFile?: (file: File) => Promise<string>; // 커스텀 파일 업로드 함수
-  s3Upload?: S3UploaderConfig; // S3 업로드 설정 (apiEndpoint, env, path 등)
+  s3Upload?: {
+    apiEndpoint: string;
+    env: "development" | "production";
+    path: string;
+    fileNameTransform?: (nameWithoutExt: string, file: File) => string; // 확장자 제외한 이름 변환
+    appendUUID?: boolean; // UUID 자동 추가 (확장자 앞)
+    preserveExtension?: boolean; // 확장자 자동 붙이기 (기본: true)
+  };
 
   // === 콜백 ===
   onContentChange?: (blocks: DefaultPartialBlock[]) => void; // 콘텐츠 변경 시 호출
@@ -366,7 +414,7 @@ interface LumirEditorProps {
 
 ---
 
-## 💡 사용 예제
+## 사용 예제
 
 ### 읽기 전용 모드
 
@@ -416,7 +464,7 @@ function EditorWithSave() {
 
 ---
 
-## 🎨 스타일링
+## 스타일링
 
 ### Tailwind CSS와 함께 사용
 
@@ -454,7 +502,7 @@ import { LumirEditor, cn } from "@lumir-company/editor";
 
 ---
 
-## ⚠️ 트러블슈팅
+## 트러블슈팅
 
 ### 필수 체크리스트
 
@@ -468,10 +516,10 @@ import { LumirEditor, cn } from "@lumir-company/editor";
 #### 1. 에디터가 보이지 않음
 
 ```tsx
-// ❌ 잘못됨
+// 잘못됨
 <LumirEditor />;
 
-// ✅ 올바름
+// 올바름
 import "@lumir-company/editor/style.css";
 <div className="h-[400px]">
   <LumirEditor />
@@ -481,10 +529,10 @@ import "@lumir-company/editor/style.css";
 #### 2. Next.js Hydration 오류
 
 ```tsx
-// ❌ 잘못됨
+// 잘못됨
 import { LumirEditor } from "@lumir-company/editor";
 
-// ✅ 올바름
+// 올바름
 const LumirEditor = dynamic(
   () =>
     import("@lumir-company/editor").then((m) => ({ default: m.LumirEditor })),
@@ -508,7 +556,7 @@ const LumirEditor = dynamic(
 #### 4. 여러 이미지 업로드 시 중복 문제
 
 ```tsx
-// ✅ 해결: appendUUID 사용
+// 해결: appendUUID 사용
 <LumirEditor
   s3Upload={{
     apiEndpoint: "/api/s3/presigned",
@@ -521,7 +569,7 @@ const LumirEditor = dynamic(
 
 ---
 
-## 🛠️ 유틸리티 API
+## 유틸리티 API
 
 ### ContentUtils
 
@@ -554,23 +602,33 @@ const uploader = createS3Uploader({
 const url = await uploader(imageFile);
 ```
 
-## 🔗 관련 링크
+## 관련 링크
 
 - [npm Package](https://www.npmjs.com/package/@lumir-company/editor)
 - [BlockNote Documentation](https://www.blocknotejs.org/)
 
 ---
 
-## 📝 변경 로그
+## 변경 로그
+
+### v0.4.1
+
+- `preserveExtension` prop 추가 - 확장자 자동 붙이기 제어 (기본: true)
+- **중요**: 파일명 변환 시 확장자 위치 수정 (확장자가 항상 맨 뒤에 오도록)
+- **Breaking Change**: `fileNameTransform` 파라미터 변경 - 이제 확장자 제외한 파일명만 전달됨
+  - 이전: `fileNameTransform: (originalName, file) => ...` → originalName에 확장자 포함
+  - 변경: `fileNameTransform: (nameWithoutExt, file) => ...` → nameWithoutExt에 확장자 제외
+- 확장자 제거 사용 사례 문서화
+- README 예제 및 설명 개선
 
 ### v0.4.0
 
-- ✨ 파일명 변환 콜백 (`fileNameTransform`) 추가
-- ✨ UUID 자동 추가 옵션 (`appendUUID`) 추가
-- 🐛 여러 이미지 동시 업로드 시 중복 문제 해결
-- 📝 문서 대폭 개선
+- 파일명 변환 콜백 (`fileNameTransform`) 추가
+- UUID 자동 추가 옵션 (`appendUUID`) 추가
+- 여러 이미지 동시 업로드 시 중복 문제 해결
+- 문서 대폭 개선
 
 ### v0.3.3
 
-- 🐛 에디터 재생성 방지 최적화
-- 📝 타입 정의 개선
+- 에디터 재생성 방지 최적화
+- 타입 정의 개선

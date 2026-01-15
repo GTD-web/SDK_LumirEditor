@@ -2,10 +2,12 @@ export interface S3UploaderConfig {
   apiEndpoint: string; // '/api/s3/presigned'(필수)
   env: "production" | "development"; // 환경 (필수)
   path: string; // 파일 경로 (필수)
-  /** 파일명 변환 콜백 - 업로드 전 파일명을 변경할 수 있습니다 */
-  fileNameTransform?: (originalName: string, file: File) => string;
+  /** 파일명 변환 콜백 - 확장자를 제외한 파일명을 받아 변환합니다 */
+  fileNameTransform?: (nameWithoutExt: string, file: File) => string;
   /** true일 경우 파일명 뒤에 UUID를 자동으로 추가합니다 (예: image_abc123.png) */
   appendUUID?: boolean;
+  /** false로 설정하면 확장자를 자동으로 붙이지 않음 (기본: true) */
+  preserveExtension?: boolean;
 }
 
 // UUID 생성 함수 (crypto.randomUUID 또는 폴백)
@@ -22,7 +24,14 @@ const generateUUID = (): string => {
 };
 
 export const createS3Uploader = (config: S3UploaderConfig) => {
-  const { apiEndpoint, env, path, fileNameTransform, appendUUID } = config;
+  const {
+    apiEndpoint,
+    env,
+    path,
+    fileNameTransform,
+    appendUUID,
+    preserveExtension = true,
+  } = config;
 
   // 필수 파라미터 검증
   if (!apiEndpoint || apiEndpoint.trim() === "") {
@@ -53,16 +62,31 @@ export const createS3Uploader = (config: S3UploaderConfig) => {
 
   // 계층 구조 파일명 생성 함수
   const generateHierarchicalFileName = (file: File): string => {
-    let filename = file.name;
+    // 0. 확장자 분리
+    const originalName = file.name;
+    const lastDotIndex = originalName.lastIndexOf(".");
+    const nameWithoutExt =
+      lastDotIndex === -1
+        ? originalName
+        : originalName.substring(0, lastDotIndex);
+    const extension =
+      lastDotIndex === -1 ? "" : originalName.substring(lastDotIndex);
 
-    // 1. 사용자 정의 파일명 변환 콜백 적용
+    let filename = nameWithoutExt;
+
+    // 1. 사용자 정의 파일명 변환 콜백 적용 (확장자 제외한 이름만)
     if (fileNameTransform) {
       filename = fileNameTransform(filename, file);
     }
 
     // 2. UUID 자동 추가 (appendUUID가 true인 경우)
     if (appendUUID) {
-      filename = appendUUIDToFileName(filename);
+      filename = `${filename}_${generateUUID()}`;
+    }
+
+    // 3. 확장자 다시 붙이기 (preserveExtension이 true인 경우만)
+    if (preserveExtension) {
+      filename = `${filename}${extension}`;
     }
 
     // {env}/{path}/{filename}

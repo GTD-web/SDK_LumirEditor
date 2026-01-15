@@ -263,6 +263,7 @@ export default function LumirEditor({
       env: s3Upload.env,
       path: s3Upload.path,
       appendUUID: s3Upload.appendUUID,
+      preserveExtension: s3Upload.preserveExtension,
       // 최신 콜백을 항상 사용하도록 ref를 통해 접근
       fileNameTransform: ((originalName: string, file: File) => {
         return fileNameTransformRef.current
@@ -275,6 +276,7 @@ export default function LumirEditor({
     s3Upload?.env,
     s3Upload?.path,
     s3Upload?.appendUUID,
+    s3Upload?.preserveExtension,
   ]);
 
   const editor = useCreateBlockNote<
