@@ -1,0 +1,5 @@
+/* Tailwind imports */
+@import "tailwindcss";
+
+/* Lumir Editor styles */
+@import "@lumir-company/editor/style.css";
