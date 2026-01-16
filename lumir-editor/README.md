@@ -17,6 +17,7 @@
   - [S3 업로드 설정](#1-s3-업로드-권장)
   - [파일명 커스터마이징](#파일명-커스터마이징)
   - [커스텀 업로더](#2-커스텀-업로더)
+- [HTML 미리보기](#html-미리보기)
 - [Props API](#props-api)
 - [사용 예제](#사용-예제)
 - [스타일링](#스타일링)
@@ -29,6 +30,7 @@
 | 특징                    | 설명                                                   |
 | ----------------------- | ------------------------------------------------------ |
 | **이미지 전용**         | 이미지 업로드/드래그앤드롭만 지원 (비디오/오디오 제거) |
+| **HTML 미리보기**       | HTML 파일을 드래그 앤 드롭하여 iframe으로 미리보기     |
 | **S3 연동**             | Presigned URL 기반 S3 업로드 내장                      |
 | **파일명 커스터마이징** | 업로드 파일명 변경 콜백 + UUID 자동 추가 지원          |
 | **로딩 스피너**         | 이미지 업로드 중 자동 스피너 표시                      |
@@ -326,6 +328,89 @@ const imageUrl = await s3Uploader(imageFile);
 1. `uploadFile` prop이 있으면 우선 사용
 2. `uploadFile` 없고 `s3Upload`가 있으면 S3 업로드 사용
 3. 둘 다 없으면 업로드 실패
+
+---
+
+## HTML 미리보기
+
+LumirEditor는 HTML 파일을 iframe을 사용하여 미리보기할 수 있는 커스텀 블록을 제공합니다. 편집 불가능한 순수 미리보기 기능으로, HTML 문서를 안전하게 표시할 수 있습니다.
+
+### 사용 방법
+
+#### 1. 드래그 앤 드롭
+
+HTML 파일(`.html`, `.htm`)을 에디터에 드래그 앤 드롭하면 자동으로 iframe 미리보기 블록이 삽입됩니다.
+
+```tsx
+<LumirEditor />
+```
+
+- **지원 파일 형식**: `.html`, `.htm`
+- **특징**:
+  - 편집 불가능한 순수 미리보기
+  - 접기/펼치기 기능
+  - 안전한 sandbox 처리 (`allow-scripts allow-same-origin`)
+  - 파일명 표시
+
+#### 2. 슬래시 메뉴
+
+에디터에서 `/`를 입력하고 "HTML Preview"를 선택하면 예제 HTML 미리보기 블록이 삽입됩니다.
+
+```
+/ → HTML Preview
+```
+
+### 특징
+
+- **iframe 기반**: HTML 문서를 독립된 iframe에서 안전하게 렌더링
+- **Sandbox 보안**: `sandbox="allow-scripts allow-same-origin"` 속성으로 보안 강화
+- **접기/펼치기**: 헤더 클릭으로 미리보기 영역 토글
+- **커스텀 높이**: 기본 400px (추후 조절 가능)
+- **편집 불가**: 순수 미리보기 전용
+
+### 사용 예제
+
+```tsx
+import { LumirEditor } from "@lumir-company/editor";
+import "@lumir-company/editor/style.css";
+
+function App() {
+  return (
+    <div className="w-full h-[600px]">
+      <LumirEditor
+        onContentChange={(blocks) => {
+          // HTML 미리보기 블록도 일반 블록과 동일하게 처리됨
+          console.log(blocks);
+        }}
+      />
+    </div>
+  );
+}
+```
+
+### 프로그래밍 방식으로 블록 삽입
+
+```tsx
+import { HtmlPreview } from "@lumir-company/editor";
+
+// 에디터 인스턴스에서 직접 블록 삽입
+editor.insertBlocks([
+  {
+    type: "htmlPreview",
+    props: {
+      htmlContent: "<h1>Hello World</h1><p>This is HTML content</p>",
+      fileName: "example.html",
+      height: "400px",
+    },
+  },
+]);
+```
+
+### 주의사항
+
+- HTML 내용은 iframe의 `sandbox` 속성으로 보안이 강화되어 있습니다
+- 외부 리소스(CSS, JS, 이미지 등)는 상대 경로가 작동하지 않을 수 있습니다
+- 인라인 스타일과 스크립트를 권장합니다
 
 ---
 

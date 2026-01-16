@@ -31,7 +31,7 @@ export default function Home() {
         </div>
 
         {/* 에디터 */}
-        <div className="w-full h-[500px] rounded-lg">
+        <div className="w-full h-[700px] rounded-lg">
           <LumirEditor
             s3Upload={{
               apiEndpoint: "/api/s3/presigned",

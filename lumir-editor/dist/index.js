@@ -23,6 +23,7 @@ var index_exports = {};
 __export(index_exports, {
   ContentUtils: () => ContentUtils,
   EditorConfig: () => EditorConfig,
+  HtmlPreview: () => HtmlPreview,
   LumirEditor: () => LumirEditor,
   cn: () => cn,
   createS3Uploader: () => createS3Uploader
@@ -30,9 +31,10 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 
 // src/components/LumirEditor.tsx
-var import_react = require("react");
-var import_react2 = require("@blocknote/react");
+var import_react3 = require("react");
+var import_react4 = require("@blocknote/react");
 var import_mantine = require("@blocknote/mantine");
+var import_core = require("@blocknote/core");
 
 // src/utils/cn.ts
 function cn(...inputs) {
@@ -51,7 +53,14 @@ var generateUUID = () => {
   });
 };
 var createS3Uploader = (config) => {
-  const { apiEndpoint, env, path, fileNameTransform, appendUUID } = config;
+  const {
+    apiEndpoint,
+    env,
+    path,
+    fileNameTransform,
+    appendUUID,
+    preserveExtension = true
+  } = config;
   if (!apiEndpoint || apiEndpoint.trim() === "") {
     throw new Error(
       "apiEndpoint is required for S3 upload. Please provide a valid API endpoint."
@@ -73,12 +82,19 @@ var createS3Uploader = (config) => {
     return `${name}_${generateUUID()}${ext}`;
   };
   const generateHierarchicalFileName = (file) => {
-    let filename = file.name;
+    const originalName = file.name;
+    const lastDotIndex = originalName.lastIndexOf(".");
+    const nameWithoutExt = lastDotIndex === -1 ? originalName : originalName.substring(0, lastDotIndex);
+    const extension = lastDotIndex === -1 ? "" : originalName.substring(lastDotIndex);
+    let filename = nameWithoutExt;
     if (fileNameTransform) {
       filename = fileNameTransform(filename, file);
     }
     if (appendUUID) {
-      filename = appendUUIDToFileName(filename);
+      filename = `${filename}_${generateUUID()}`;
+    }
+    if (preserveExtension) {
+      filename = `${filename}${extension}`;
     }
     return `${env}/${path}/${filename}`;
   };
@@ -119,8 +135,131 @@ var createS3Uploader = (config) => {
   };
 };
 
-// src/components/LumirEditor.tsx
+// src/blocks/HtmlPreview.tsx
+var import_react = require("@blocknote/react");
+var import_react2 = require("react");
 var import_jsx_runtime = require("react/jsx-runtime");
+var HtmlPreview = (0, import_react.createReactBlockSpec)(
+  {
+    type: "htmlPreview",
+    propSchema: {
+      htmlContent: {
+        default: ""
+      },
+      fileName: {
+        default: ""
+      },
+      height: {
+        default: "400px"
+      }
+    },
+    content: "none"
+  },
+  {
+    render: (props) => {
+      const [isExpanded, setIsExpanded] = (0, import_react2.useState)(true);
+      const htmlContent = props.block.props.htmlContent || "";
+      const fileName = props.block.props.fileName || "HTML Document";
+      const height = props.block.props.height || "400px";
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+        "div",
+        {
+          style: {
+            border: "1px solid #e0e0e0",
+            borderRadius: "8px",
+            overflow: "hidden",
+            backgroundColor: "#f9f9f9",
+            marginTop: "8px",
+            marginBottom: "8px"
+          },
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "div",
+              {
+                style: {
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "12px 16px",
+                  backgroundColor: "#fff",
+                  borderBottom: "1px solid #e0e0e0",
+                  cursor: "pointer"
+                },
+                onClick: () => setIsExpanded(!isExpanded),
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                      "svg",
+                      {
+                        width: "20",
+                        height: "20",
+                        viewBox: "0 0 24 24",
+                        fill: "none",
+                        stroke: "currentColor",
+                        strokeWidth: "2",
+                        strokeLinecap: "round",
+                        strokeLinejoin: "round",
+                        children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("polyline", { points: "16 18 22 12 16 6" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("polyline", { points: "8 6 2 12 8 18" })
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontWeight: 500, fontSize: "14px" }, children: fileName })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    "svg",
+                    {
+                      width: "20",
+                      height: "20",
+                      viewBox: "0 0 24 24",
+                      fill: "none",
+                      stroke: "currentColor",
+                      strokeWidth: "2",
+                      strokeLinecap: "round",
+                      strokeLinejoin: "round",
+                      style: {
+                        transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                        transition: "transform 0.2s"
+                      },
+                      children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("polyline", { points: "6 9 12 15 18 9" })
+                    }
+                  )
+                ]
+              }
+            ),
+            isExpanded && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "div",
+              {
+                style: {
+                  padding: "0",
+                  backgroundColor: "#fff"
+                },
+                children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "iframe",
+                  {
+                    srcDoc: htmlContent,
+                    style: {
+                      width: "100%",
+                      height,
+                      border: "none",
+                      display: "block"
+                    },
+                    sandbox: "allow-scripts allow-same-origin",
+                    title: fileName
+                  }
+                )
+              }
+            )
+          ]
+        }
+      );
+    }
+  }
+);
+
+// src/components/LumirEditor.tsx
+var import_jsx_runtime2 = require("react/jsx-runtime");
 var ContentUtils = class {
   /**
    * JSON 문자열의 유효성을 검증합니다
@@ -242,6 +381,9 @@ var EditorConfig = class {
 var isImageFile = (file) => {
   return file.size > 0 && (file.type?.startsWith("image/") || !file.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(file.name || ""));
 };
+var isHtmlFile = (file) => {
+  return file.size > 0 && (file.type === "text/html" || file.name?.toLowerCase().endsWith(".html") || file.name?.toLowerCase().endsWith(".htm"));
+};
 function LumirEditor({
   // editor options
   initialContent,
@@ -272,11 +414,11 @@ function LumirEditor({
   // callbacks / refs
   onContentChange
 }) {
-  const [isUploading, setIsUploading] = (0, import_react.useState)(false);
-  const validatedContent = (0, import_react.useMemo)(() => {
+  const [isUploading, setIsUploading] = (0, import_react3.useState)(false);
+  const validatedContent = (0, import_react3.useMemo)(() => {
     return ContentUtils.validateContent(initialContent, initialEmptyBlocks);
   }, [initialContent, initialEmptyBlocks]);
-  const tableConfig = (0, import_react.useMemo)(() => {
+  const tableConfig = (0, import_react3.useMemo)(() => {
     return EditorConfig.getDefaultTableConfig(tables);
   }, [
     tables?.splitCells,
@@ -284,10 +426,10 @@ function LumirEditor({
     tables?.cellTextColor,
     tables?.headers
   ]);
-  const headingConfig = (0, import_react.useMemo)(() => {
+  const headingConfig = (0, import_react3.useMemo)(() => {
     return EditorConfig.getDefaultHeadingConfig(heading);
   }, [heading?.levels?.join(",") ?? ""]);
-  const disabledExtensions = (0, import_react.useMemo)(() => {
+  const disabledExtensions = (0, import_react3.useMemo)(() => {
     return EditorConfig.getDisabledExtensions(
       disableExtensions,
       allowVideoUpload,
@@ -295,17 +437,18 @@ function LumirEditor({
       allowFileUpload
     );
   }, [disableExtensions, allowVideoUpload, allowAudioUpload, allowFileUpload]);
-  const fileNameTransformRef = (0, import_react.useRef)(s3Upload?.fileNameTransform);
-  (0, import_react.useEffect)(() => {
+  const fileNameTransformRef = (0, import_react3.useRef)(s3Upload?.fileNameTransform);
+  (0, import_react3.useEffect)(() => {
     fileNameTransformRef.current = s3Upload?.fileNameTransform;
   }, [s3Upload?.fileNameTransform]);
-  const memoizedS3Upload = (0, import_react.useMemo)(() => {
+  const memoizedS3Upload = (0, import_react3.useMemo)(() => {
     if (!s3Upload) return void 0;
     return {
       apiEndpoint: s3Upload.apiEndpoint,
       env: s3Upload.env,
       path: s3Upload.path,
       appendUUID: s3Upload.appendUUID,
+      preserveExtension: s3Upload.preserveExtension,
       // 최신 콜백을 항상 사용하도록 ref를 통해 접근
       fileNameTransform: (originalName, file) => {
         return fileNameTransformRef.current ? fileNameTransformRef.current(originalName, file) : originalName;
@@ -315,11 +458,18 @@ function LumirEditor({
     s3Upload?.apiEndpoint,
     s3Upload?.env,
     s3Upload?.path,
-    s3Upload?.appendUUID
+    s3Upload?.appendUUID,
+    s3Upload?.preserveExtension
   ]);
-  const editor = (0, import_react2.useCreateBlockNote)(
+  const editor = (0, import_react4.useCreateBlockNote)(
     {
       initialContent: validatedContent,
+      // @ts-ignore - 커스텀 블록 스키마 추가
+      blockSpecs: {
+        ...import_core.defaultBlockSpecs,
+        // @ts-ignore - 커스텀 블록 추가
+        htmlPreview: HtmlPreview
+      },
       tables: tableConfig,
       heading: headingConfig,
       animations: false,
@@ -398,12 +548,12 @@ function LumirEditor({
       memoizedS3Upload
     ]
   );
-  (0, import_react.useEffect)(() => {
+  (0, import_react3.useEffect)(() => {
     if (editor) {
       editor.isEditable = editable;
     }
   }, [editor, editable]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react3.useEffect)(() => {
     if (!editor || !onContentChange) return;
     const handleContentChange = () => {
       const blocks = editor.topLevelBlocks;
@@ -411,7 +561,7 @@ function LumirEditor({
     };
     return editor.onEditorContentChange(handleContentChange);
   }, [editor, onContentChange]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react3.useEffect)(() => {
     const el = editor?.domElement;
     if (!el) return;
     const handleDragOver = (e) => {
@@ -430,12 +580,13 @@ function LumirEditor({
       e.stopPropagation();
       const items = Array.from(e.dataTransfer.items ?? []);
       const files = items.filter((it) => it.kind === "file").map((it) => it.getAsFile()).filter((f) => !!f);
-      const acceptedFiles = files.filter(isImageFile);
-      if (acceptedFiles.length === 0) return;
+      const imageFiles = files.filter(isImageFile);
+      const htmlFiles = files.filter(isHtmlFile);
+      if (imageFiles.length === 0 && htmlFiles.length === 0) return;
       (async () => {
         setIsUploading(true);
         try {
-          for (const file of acceptedFiles) {
+          for (const file of imageFiles) {
             try {
               if (editor?.uploadFile) {
                 const url = await editor.uploadFile(file);
@@ -446,6 +597,36 @@ function LumirEditor({
             } catch (err) {
               console.warn(
                 "Image upload failed, skipped:",
+                file.name || "",
+                err
+              );
+            }
+          }
+          for (const file of htmlFiles) {
+            try {
+              const htmlContent = await file.text();
+              const currentBlock = editor.getTextCursorPosition().block;
+              editor.insertBlocks(
+                [
+                  {
+                    type: "paragraph"
+                  }
+                ],
+                currentBlock,
+                "after"
+              );
+              const newBlock = editor.getTextCursorPosition().block;
+              editor.updateBlock(newBlock, {
+                type: "htmlPreview",
+                props: {
+                  htmlContent,
+                  fileName: file.name,
+                  height: "400px"
+                }
+              });
+            } catch (err) {
+              console.warn(
+                "HTML file processing failed, skipped:",
                 file.name || "",
                 err
               );
@@ -465,19 +646,19 @@ function LumirEditor({
       el.removeEventListener("drop", handleDrop, { capture: true });
     };
   }, [editor]);
-  const computedSideMenu = (0, import_react.useMemo)(() => {
+  const computedSideMenu = (0, import_react3.useMemo)(() => {
     return sideMenuAddButton ? sideMenu : false;
   }, [sideMenuAddButton, sideMenu]);
-  const DragHandleOnlySideMenu = (0, import_react.useMemo)(() => {
-    return (props) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react2.SideMenu, { ...props, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react2.DragHandleButton, { ...props }) });
+  const DragHandleOnlySideMenu = (0, import_react3.useMemo)(() => {
+    return (props) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(import_react4.SideMenu, { ...props, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(import_react4.DragHandleButton, { ...props }) });
   }, []);
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
     "div",
     {
       className: cn("lumirEditor", className),
       style: { position: "relative" },
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
           import_mantine.BlockNoteView,
           {
             editor,
@@ -492,13 +673,13 @@ function LumirEditor({
             tableHandles,
             onSelectionChange,
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                import_react2.SuggestionMenuController,
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                import_react4.SuggestionMenuController,
                 {
                   triggerCharacter: "/",
-                  getItems: (0, import_react.useCallback)(
+                  getItems: (0, import_react3.useCallback)(
                     async (query) => {
-                      const items = (0, import_react2.getDefaultReactSlashMenuItems)(editor);
+                      const items = (0, import_react4.getDefaultReactSlashMenuItems)(editor);
                       const filtered = items.filter((item) => {
                         const key = (item?.key || "").toString().toLowerCase();
                         const title = (item?.title || "").toString().toLowerCase();
@@ -507,9 +688,44 @@ function LumirEditor({
                           return false;
                         return true;
                       });
-                      if (!query) return filtered;
+                      const htmlPreviewItem = {
+                        title: "HTML Preview",
+                        key: "htmlPreview",
+                        onItemClick: () => {
+                          const currentBlock = editor.getTextCursorPosition().block;
+                          editor.updateBlock(currentBlock, {
+                            type: "htmlPreview",
+                            props: {
+                              htmlContent: "<h1>HTML Preview</h1><p>Drag and drop an HTML file to preview it here.</p>",
+                              fileName: "example.html",
+                              height: "400px"
+                            }
+                          });
+                        },
+                        aliases: ["html", "preview", "iframe"],
+                        group: "Other",
+                        icon: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                          "svg",
+                          {
+                            width: "18",
+                            height: "18",
+                            viewBox: "0 0 24 24",
+                            fill: "none",
+                            stroke: "currentColor",
+                            strokeWidth: "2",
+                            strokeLinecap: "round",
+                            strokeLinejoin: "round",
+                            children: [
+                              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("polyline", { points: "16 18 22 12 16 6" }),
+                              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("polyline", { points: "8 6 2 12 8 18" })
+                            ]
+                          }
+                        )
+                      };
+                      const allItems = [...filtered, htmlPreviewItem];
+                      if (!query) return allItems;
                       const q = query.toLowerCase();
-                      return filtered.filter(
+                      return allItems.filter(
                         (item) => item.title?.toLowerCase().includes(q) || (item.aliases || []).some(
                           (a) => a.toLowerCase().includes(q)
                         )
@@ -519,11 +735,11 @@ function LumirEditor({
                   )
                 }
               ),
-              !sideMenuAddButton && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react2.SideMenuController, { sideMenu: DragHandleOnlySideMenu })
+              !sideMenuAddButton && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(import_react4.SideMenuController, { sideMenu: DragHandleOnlySideMenu })
             ]
           }
         ),
-        isUploading && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "lumirEditor-upload-overlay", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "lumirEditor-spinner" }) })
+        isUploading && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "lumirEditor-upload-overlay", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "lumirEditor-spinner" }) })
       ]
     }
   );
@@ -532,6 +748,7 @@ function LumirEditor({
 0 && (module.exports = {
   ContentUtils,
   EditorConfig,
+  HtmlPreview,
   LumirEditor,
   cn,
   createS3Uploader

@@ -1,7 +1,7 @@
 "use client";
 
 // src/components/LumirEditor.tsx
-import { useEffect, useMemo, useCallback, useState, useRef } from "react";
+import { useEffect, useMemo, useCallback, useState as useState2, useRef } from "react";
 import {
   useCreateBlockNote,
   SideMenu as BlockSideMenu,
@@ -11,6 +11,7 @@ import {
   getDefaultReactSlashMenuItems
 } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
+import { defaultBlockSpecs } from "@blocknote/core";
 
 // src/utils/cn.ts
 function cn(...inputs) {
@@ -29,7 +30,14 @@ var generateUUID = () => {
   });
 };
 var createS3Uploader = (config) => {
-  const { apiEndpoint, env, path, fileNameTransform, appendUUID } = config;
+  const {
+    apiEndpoint,
+    env,
+    path,
+    fileNameTransform,
+    appendUUID,
+    preserveExtension = true
+  } = config;
   if (!apiEndpoint || apiEndpoint.trim() === "") {
     throw new Error(
       "apiEndpoint is required for S3 upload. Please provide a valid API endpoint."
@@ -51,12 +59,19 @@ var createS3Uploader = (config) => {
     return `${name}_${generateUUID()}${ext}`;
   };
   const generateHierarchicalFileName = (file) => {
-    let filename = file.name;
+    const originalName = file.name;
+    const lastDotIndex = originalName.lastIndexOf(".");
+    const nameWithoutExt = lastDotIndex === -1 ? originalName : originalName.substring(0, lastDotIndex);
+    const extension = lastDotIndex === -1 ? "" : originalName.substring(lastDotIndex);
+    let filename = nameWithoutExt;
     if (fileNameTransform) {
       filename = fileNameTransform(filename, file);
     }
     if (appendUUID) {
-      filename = appendUUIDToFileName(filename);
+      filename = `${filename}_${generateUUID()}`;
+    }
+    if (preserveExtension) {
+      filename = `${filename}${extension}`;
     }
     return `${env}/${path}/${filename}`;
   };
@@ -97,8 +112,131 @@ var createS3Uploader = (config) => {
   };
 };
 
-// src/components/LumirEditor.tsx
+// src/blocks/HtmlPreview.tsx
+import { createReactBlockSpec } from "@blocknote/react";
+import { useState } from "react";
 import { jsx, jsxs } from "react/jsx-runtime";
+var HtmlPreview = createReactBlockSpec(
+  {
+    type: "htmlPreview",
+    propSchema: {
+      htmlContent: {
+        default: ""
+      },
+      fileName: {
+        default: ""
+      },
+      height: {
+        default: "400px"
+      }
+    },
+    content: "none"
+  },
+  {
+    render: (props) => {
+      const [isExpanded, setIsExpanded] = useState(true);
+      const htmlContent = props.block.props.htmlContent || "";
+      const fileName = props.block.props.fileName || "HTML Document";
+      const height = props.block.props.height || "400px";
+      return /* @__PURE__ */ jsxs(
+        "div",
+        {
+          style: {
+            border: "1px solid #e0e0e0",
+            borderRadius: "8px",
+            overflow: "hidden",
+            backgroundColor: "#f9f9f9",
+            marginTop: "8px",
+            marginBottom: "8px"
+          },
+          children: [
+            /* @__PURE__ */ jsxs(
+              "div",
+              {
+                style: {
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "12px 16px",
+                  backgroundColor: "#fff",
+                  borderBottom: "1px solid #e0e0e0",
+                  cursor: "pointer"
+                },
+                onClick: () => setIsExpanded(!isExpanded),
+                children: [
+                  /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
+                    /* @__PURE__ */ jsxs(
+                      "svg",
+                      {
+                        width: "20",
+                        height: "20",
+                        viewBox: "0 0 24 24",
+                        fill: "none",
+                        stroke: "currentColor",
+                        strokeWidth: "2",
+                        strokeLinecap: "round",
+                        strokeLinejoin: "round",
+                        children: [
+                          /* @__PURE__ */ jsx("polyline", { points: "16 18 22 12 16 6" }),
+                          /* @__PURE__ */ jsx("polyline", { points: "8 6 2 12 8 18" })
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ jsx("span", { style: { fontWeight: 500, fontSize: "14px" }, children: fileName })
+                  ] }),
+                  /* @__PURE__ */ jsx(
+                    "svg",
+                    {
+                      width: "20",
+                      height: "20",
+                      viewBox: "0 0 24 24",
+                      fill: "none",
+                      stroke: "currentColor",
+                      strokeWidth: "2",
+                      strokeLinecap: "round",
+                      strokeLinejoin: "round",
+                      style: {
+                        transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                        transition: "transform 0.2s"
+                      },
+                      children: /* @__PURE__ */ jsx("polyline", { points: "6 9 12 15 18 9" })
+                    }
+                  )
+                ]
+              }
+            ),
+            isExpanded && /* @__PURE__ */ jsx(
+              "div",
+              {
+                style: {
+                  padding: "0",
+                  backgroundColor: "#fff"
+                },
+                children: /* @__PURE__ */ jsx(
+                  "iframe",
+                  {
+                    srcDoc: htmlContent,
+                    style: {
+                      width: "100%",
+                      height,
+                      border: "none",
+                      display: "block"
+                    },
+                    sandbox: "allow-scripts allow-same-origin",
+                    title: fileName
+                  }
+                )
+              }
+            )
+          ]
+        }
+      );
+    }
+  }
+);
+
+// src/components/LumirEditor.tsx
+import { jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
 var ContentUtils = class {
   /**
    * JSON 문자열의 유효성을 검증합니다
@@ -220,6 +358,9 @@ var EditorConfig = class {
 var isImageFile = (file) => {
   return file.size > 0 && (file.type?.startsWith("image/") || !file.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(file.name || ""));
 };
+var isHtmlFile = (file) => {
+  return file.size > 0 && (file.type === "text/html" || file.name?.toLowerCase().endsWith(".html") || file.name?.toLowerCase().endsWith(".htm"));
+};
 function LumirEditor({
   // editor options
   initialContent,
@@ -250,7 +391,7 @@ function LumirEditor({
   // callbacks / refs
   onContentChange
 }) {
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploading, setIsUploading] = useState2(false);
   const validatedContent = useMemo(() => {
     return ContentUtils.validateContent(initialContent, initialEmptyBlocks);
   }, [initialContent, initialEmptyBlocks]);
@@ -284,6 +425,7 @@ function LumirEditor({
       env: s3Upload.env,
       path: s3Upload.path,
       appendUUID: s3Upload.appendUUID,
+      preserveExtension: s3Upload.preserveExtension,
       // 최신 콜백을 항상 사용하도록 ref를 통해 접근
       fileNameTransform: (originalName, file) => {
         return fileNameTransformRef.current ? fileNameTransformRef.current(originalName, file) : originalName;
@@ -293,11 +435,18 @@ function LumirEditor({
     s3Upload?.apiEndpoint,
     s3Upload?.env,
     s3Upload?.path,
-    s3Upload?.appendUUID
+    s3Upload?.appendUUID,
+    s3Upload?.preserveExtension
   ]);
   const editor = useCreateBlockNote(
     {
       initialContent: validatedContent,
+      // @ts-ignore - 커스텀 블록 스키마 추가
+      blockSpecs: {
+        ...defaultBlockSpecs,
+        // @ts-ignore - 커스텀 블록 추가
+        htmlPreview: HtmlPreview
+      },
       tables: tableConfig,
       heading: headingConfig,
       animations: false,
@@ -408,12 +557,13 @@ function LumirEditor({
       e.stopPropagation();
       const items = Array.from(e.dataTransfer.items ?? []);
       const files = items.filter((it) => it.kind === "file").map((it) => it.getAsFile()).filter((f) => !!f);
-      const acceptedFiles = files.filter(isImageFile);
-      if (acceptedFiles.length === 0) return;
+      const imageFiles = files.filter(isImageFile);
+      const htmlFiles = files.filter(isHtmlFile);
+      if (imageFiles.length === 0 && htmlFiles.length === 0) return;
       (async () => {
         setIsUploading(true);
         try {
-          for (const file of acceptedFiles) {
+          for (const file of imageFiles) {
             try {
               if (editor?.uploadFile) {
                 const url = await editor.uploadFile(file);
@@ -424,6 +574,36 @@ function LumirEditor({
             } catch (err) {
               console.warn(
                 "Image upload failed, skipped:",
+                file.name || "",
+                err
+              );
+            }
+          }
+          for (const file of htmlFiles) {
+            try {
+              const htmlContent = await file.text();
+              const currentBlock = editor.getTextCursorPosition().block;
+              editor.insertBlocks(
+                [
+                  {
+                    type: "paragraph"
+                  }
+                ],
+                currentBlock,
+                "after"
+              );
+              const newBlock = editor.getTextCursorPosition().block;
+              editor.updateBlock(newBlock, {
+                type: "htmlPreview",
+                props: {
+                  htmlContent,
+                  fileName: file.name,
+                  height: "400px"
+                }
+              });
+            } catch (err) {
+              console.warn(
+                "HTML file processing failed, skipped:",
                 file.name || "",
                 err
               );
@@ -447,15 +627,15 @@ function LumirEditor({
     return sideMenuAddButton ? sideMenu : false;
   }, [sideMenuAddButton, sideMenu]);
   const DragHandleOnlySideMenu = useMemo(() => {
-    return (props) => /* @__PURE__ */ jsx(BlockSideMenu, { ...props, children: /* @__PURE__ */ jsx(DragHandleButton, { ...props }) });
+    return (props) => /* @__PURE__ */ jsx2(BlockSideMenu, { ...props, children: /* @__PURE__ */ jsx2(DragHandleButton, { ...props }) });
   }, []);
-  return /* @__PURE__ */ jsxs(
+  return /* @__PURE__ */ jsxs2(
     "div",
     {
       className: cn("lumirEditor", className),
       style: { position: "relative" },
       children: [
-        /* @__PURE__ */ jsxs(
+        /* @__PURE__ */ jsxs2(
           BlockNoteView,
           {
             editor,
@@ -470,7 +650,7 @@ function LumirEditor({
             tableHandles,
             onSelectionChange,
             children: [
-              /* @__PURE__ */ jsx(
+              /* @__PURE__ */ jsx2(
                 SuggestionMenuController,
                 {
                   triggerCharacter: "/",
@@ -485,9 +665,44 @@ function LumirEditor({
                           return false;
                         return true;
                       });
-                      if (!query) return filtered;
+                      const htmlPreviewItem = {
+                        title: "HTML Preview",
+                        key: "htmlPreview",
+                        onItemClick: () => {
+                          const currentBlock = editor.getTextCursorPosition().block;
+                          editor.updateBlock(currentBlock, {
+                            type: "htmlPreview",
+                            props: {
+                              htmlContent: "<h1>HTML Preview</h1><p>Drag and drop an HTML file to preview it here.</p>",
+                              fileName: "example.html",
+                              height: "400px"
+                            }
+                          });
+                        },
+                        aliases: ["html", "preview", "iframe"],
+                        group: "Other",
+                        icon: /* @__PURE__ */ jsxs2(
+                          "svg",
+                          {
+                            width: "18",
+                            height: "18",
+                            viewBox: "0 0 24 24",
+                            fill: "none",
+                            stroke: "currentColor",
+                            strokeWidth: "2",
+                            strokeLinecap: "round",
+                            strokeLinejoin: "round",
+                            children: [
+                              /* @__PURE__ */ jsx2("polyline", { points: "16 18 22 12 16 6" }),
+                              /* @__PURE__ */ jsx2("polyline", { points: "8 6 2 12 8 18" })
+                            ]
+                          }
+                        )
+                      };
+                      const allItems = [...filtered, htmlPreviewItem];
+                      if (!query) return allItems;
                       const q = query.toLowerCase();
-                      return filtered.filter(
+                      return allItems.filter(
                         (item) => item.title?.toLowerCase().includes(q) || (item.aliases || []).some(
                           (a) => a.toLowerCase().includes(q)
                         )
@@ -497,11 +712,11 @@ function LumirEditor({
                   )
                 }
               ),
-              !sideMenuAddButton && /* @__PURE__ */ jsx(SideMenuController, { sideMenu: DragHandleOnlySideMenu })
+              !sideMenuAddButton && /* @__PURE__ */ jsx2(SideMenuController, { sideMenu: DragHandleOnlySideMenu })
             ]
           }
         ),
-        isUploading && /* @__PURE__ */ jsx("div", { className: "lumirEditor-upload-overlay", children: /* @__PURE__ */ jsx("div", { className: "lumirEditor-spinner" }) })
+        isUploading && /* @__PURE__ */ jsx2("div", { className: "lumirEditor-upload-overlay", children: /* @__PURE__ */ jsx2("div", { className: "lumirEditor-spinner" }) })
       ]
     }
   );
@@ -509,6 +724,7 @@ function LumirEditor({
 export {
   ContentUtils,
   EditorConfig,
+  HtmlPreview,
   LumirEditor,
   cn,
   createS3Uploader

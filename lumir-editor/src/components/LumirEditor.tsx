@@ -12,15 +12,10 @@ import {
 import { BlockNoteView } from "@blocknote/mantine";
 import { cn } from "../utils/cn";
 
-import type {
-  DefaultPartialBlock,
-  LumirEditorProps,
-  DefaultBlockSchema,
-  DefaultInlineContentSchema,
-  DefaultStyleSchema,
-} from "../types";
+import type { DefaultPartialBlock, LumirEditorProps } from "../types";
 
 import { createS3Uploader } from "../utils/s3-uploader";
+import { schema } from "../blocks/HtmlPreview";
 
 // ==========================================
 // 유틸리티 클래스들
@@ -187,6 +182,15 @@ const isImageFile = (file: File): boolean => {
   );
 };
 
+const isHtmlFile = (file: File): boolean => {
+  return (
+    file.size > 0 &&
+    (file.type === "text/html" ||
+      file.name?.toLowerCase().endsWith(".html") ||
+      file.name?.toLowerCase().endsWith(".htm"))
+  );
+};
+
 export default function LumirEditor({
   // editor options
   initialContent,
@@ -279,13 +283,11 @@ export default function LumirEditor({
     s3Upload?.preserveExtension,
   ]);
 
-  const editor = useCreateBlockNote<
-    DefaultBlockSchema,
-    DefaultInlineContentSchema,
-    DefaultStyleSchema
-  >(
+  const editor = useCreateBlockNote(
     {
-      initialContent: validatedContent as DefaultPartialBlock[],
+      // HTML 미리보기 블록이 포함된 커스텀 스키마 사용
+      schema,
+      initialContent: validatedContent as any,
       tables: tableConfig,
       heading: headingConfig,
       animations: false, // 기본적으로 애니메이션 비활성화
@@ -403,7 +405,7 @@ export default function LumirEditor({
     return editor.onEditorContentChange(handleContentChange);
   }, [editor, onContentChange]);
 
-  // 드래그앤드롭 이미지 처리
+  // 드래그앤드롭 이미지/HTML 처리
   useEffect(() => {
     const el = editor?.domElement as HTMLElement | undefined;
     if (!el) return;
@@ -435,18 +437,18 @@ export default function LumirEditor({
         .map((it) => it.getAsFile())
         .filter((f): f is File => !!f);
 
-      // 이미지 파일만 허용
-      const acceptedFiles = files.filter(isImageFile);
+      // 이미지 파일과 HTML 파일 분리
+      const imageFiles = files.filter(isImageFile);
+      const htmlFiles = files.filter(isHtmlFile);
 
-      if (acceptedFiles.length === 0) return;
+      if (imageFiles.length === 0 && htmlFiles.length === 0) return;
 
       (async () => {
-        // 드래그앤드롭으로 여러 이미지 업로드 시 로딩 상태 관리
         setIsUploading(true);
         try {
-          for (const file of acceptedFiles) {
+          // 이미지 파일 처리
+          for (const file of imageFiles) {
             try {
-              // 에디터의 uploadFile 함수 사용 (일관된 로직)
               if (editor?.uploadFile) {
                 const url = await editor.uploadFile(file);
                 if (url) {
@@ -456,6 +458,36 @@ export default function LumirEditor({
             } catch (err) {
               console.warn(
                 "Image upload failed, skipped:",
+                file.name || "",
+                err
+              );
+            }
+          }
+
+          // HTML 파일 처리 - htmlPreview 블록으로 삽입
+          for (const file of htmlFiles) {
+            try {
+              const htmlContent = await file.text();
+              const currentBlock = editor.getTextCursorPosition().block;
+
+              // htmlPreview 블록 삽입
+              editor.insertBlocks(
+                [
+                  {
+                    type: "htmlPreview",
+                    props: {
+                      htmlContent: htmlContent,
+                      fileName: file.name,
+                      height: "400px",
+                    },
+                  },
+                ],
+                currentBlock,
+                "after"
+              );
+            } catch (err) {
+              console.warn(
+                "HTML file processing failed, skipped:",
                 file.name || "",
                 err
               );
@@ -531,9 +563,63 @@ export default function LumirEditor({
                   return true;
                 });
 
-                if (!query) return filtered;
+                // HTML 미리보기 슬래시 메뉴 항목 추가
+                const htmlPreviewItem = {
+                  title: "HTML Preview",
+                  onItemClick: () => {
+                    // 파일 선택 다이얼로그 열기
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.accept = ".html,.htm";
+                    input.onchange = async (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (file) {
+                        const htmlContent = await file.text();
+                        const currentBlock =
+                          editor.getTextCursorPosition().block;
+                        editor.insertBlocks(
+                          [
+                            {
+                              type: "htmlPreview",
+                              props: {
+                                htmlContent: htmlContent,
+                                fileName: file.name,
+                                height: "400px",
+                              },
+                            },
+                          ],
+                          currentBlock,
+                          "after"
+                        );
+                      }
+                    };
+                    input.click();
+                  },
+                  aliases: ["html", "preview", "웹", "웹페이지"],
+                  group: "Embeds",
+                  icon: (
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="16 18 22 12 16 6"></polyline>
+                      <polyline points="8 6 2 12 8 18"></polyline>
+                    </svg>
+                  ),
+                  subtext: "HTML 파일을 미리보기로 삽입",
+                };
+
+                const allItems = [...filtered, htmlPreviewItem];
+
+                if (!query) return allItems;
                 const q = query.toLowerCase();
-                return filtered.filter(
+                return allItems.filter(
                   (item: any) =>
                     item.title?.toLowerCase().includes(q) ||
                     (item.aliases || []).some((a: string) =>

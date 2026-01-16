@@ -8,6 +8,7 @@ export {
 } from "./components/LumirEditor";
 export { cn } from "./utils/cn";
 export { createS3Uploader } from "./utils/s3-uploader";
+export { HtmlPreviewBlock, schema as HtmlPreviewSchema } from "./blocks/HtmlPreview";
 
 // 타입 export (별도 파일에서 관리)
 export type {
