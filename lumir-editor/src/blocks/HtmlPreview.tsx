@@ -152,22 +152,6 @@ export const HtmlPreviewBlock = createReactBlockSpec(
               onClick={() => setIsExpanded(!isExpanded)}
             >
               <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="16 18 22 12 16 6"></polyline>
-                <polyline points="8 6 2 12 8 18"></polyline>
-              </svg>
-              <span style={{ fontWeight: 500, fontSize: "14px" }}>
-                {fileName}
-              </span>
-              <svg
                 width="16"
                 height="16"
                 viewBox="0 0 24 24"
@@ -183,6 +167,10 @@ export const HtmlPreviewBlock = createReactBlockSpec(
               >
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
+
+              <span style={{ fontWeight: 500, fontSize: "14px" }}>
+                {fileName}
+              </span>
             </div>
 
             {/* 액션 버튼들 */}
