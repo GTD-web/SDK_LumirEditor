@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { DefaultPartialBlock } from "@lumir-company/editor";
 
 // SSR 비활성화로 에디터 동적 로드
@@ -14,6 +14,11 @@ const LumirEditor = dynamic(
 export default function Home() {
   const [content, setContent] = useState<DefaultPartialBlock[]>([]);
   const [inputValue, setInputValue] = useState<string>("");
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
@@ -32,20 +37,22 @@ export default function Home() {
 
         {/* 에디터 */}
         <div className="w-full h-[700px] rounded-lg">
-          <LumirEditor
-            s3Upload={{
-              apiEndpoint: "/api/s3/presigned",
-              env: "development",
-              path: "test",
-              fileNameTransform: (nameWithoutExt, file) => {
-                return `${inputValue}_${nameWithoutExt}`;
-              },
-              appendUUID: true,
-            }}
-            onContentChange={setContent}
-            className="h-full"
-            initialContent="이미지를 업로드해보세요! 🚀"
-          />
+          {isMounted && (
+            <LumirEditor
+              s3Upload={{
+                apiEndpoint: "/api/s3/presigned",
+                env: "development",
+                path: "test",
+                fileNameTransform: (nameWithoutExt, file) => {
+                  return `${inputValue}_${nameWithoutExt}`;
+                },
+                appendUUID: true,
+              }}
+              onContentChange={setContent}
+              className="h-full"
+              initialContent="이미지를 업로드해보세요! 🚀"
+            />
+          )}
         </div>
 
         {/* 콘텐츠 미리보기 */}
