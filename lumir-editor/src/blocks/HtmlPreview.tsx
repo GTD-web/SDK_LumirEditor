@@ -5,7 +5,7 @@ import {
   defaultInlineContentSpecs,
   defaultStyleSpecs,
 } from "@blocknote/core";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 // HTML 미리보기 블록 속성 타입
 export interface HtmlPreviewProps {
@@ -39,6 +39,7 @@ export const HtmlPreviewBlock = createReactBlockSpec(
     render: (props) => {
       const [isExpanded, setIsExpanded] = useState(true);
       const [isResizing, setIsResizing] = useState(false);
+      const [blobUrl, setBlobUrl] = useState<string>("");
       const containerRef = useRef<HTMLDivElement>(null);
 
       const htmlContent = props.block.props.htmlContent || "";
@@ -47,6 +48,19 @@ export const HtmlPreviewBlock = createReactBlockSpec(
 
       // 현재 높이 (숫자로 파싱)
       const currentHeight = parseInt(savedHeight, 10) || 400;
+
+      // HTML 내용을 Blob URL로 변환 (CORS 문제 해결)
+      useEffect(() => {
+        if (htmlContent) {
+          const blob = new Blob([htmlContent], { type: "text/html" });
+          const url = URL.createObjectURL(blob);
+          setBlobUrl(url);
+
+          return () => {
+            URL.revokeObjectURL(url);
+          };
+        }
+      }, [htmlContent]);
 
       // 리사이즈 시작
       const handleResizeStart = useCallback(
@@ -267,7 +281,7 @@ export const HtmlPreviewBlock = createReactBlockSpec(
               }}
             >
               <iframe
-                srcDoc={htmlContent}
+                src={blobUrl || "about:blank"}
                 style={{
                   width: "100%",
                   height: `${currentHeight}px`,
@@ -275,7 +289,7 @@ export const HtmlPreviewBlock = createReactBlockSpec(
                   display: "block",
                   pointerEvents: isResizing ? "none" : "auto",
                 }}
-                sandbox=""
+                sandbox="allow-same-origin"
                 title={fileName}
               />
 

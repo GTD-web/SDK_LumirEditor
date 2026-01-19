@@ -16,6 +16,7 @@ import type { DefaultPartialBlock, LumirEditorProps } from "../types";
 
 import { createS3Uploader } from "../utils/s3-uploader";
 import { schema } from "../blocks/HtmlPreview";
+import { FloatingMenu } from "./FloatingMenu";
 
 // ==========================================
 // 유틸리티 클래스들
@@ -218,6 +219,8 @@ export default function LumirEditor({
   onSelectionChange,
   className = "",
   sideMenuAddButton = false,
+  floatingMenu = false,
+  floatingMenuPosition = "sticky",
   // callbacks / refs
   onContentChange,
 }: LumirEditorProps) {
@@ -527,13 +530,49 @@ export default function LumirEditor({
   return (
     <div
       className={cn("lumirEditor", className)}
-      style={{ position: "relative" }}
+      style={{ position: "relative", display: "flex", flexDirection: "column" }}
     >
+      {/* FloatingMenu를 BlockNoteView 외부로 이동 */}
+      {floatingMenu && editor && (
+        <FloatingMenu
+          editor={editor as any}
+          position={floatingMenuPosition}
+          onImageUpload={async () => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = "image/*";
+            input.onchange = async (e) => {
+              const file = (e.target as HTMLInputElement).files?.[0];
+              if (file && editor.uploadFile) {
+                try {
+                  setIsUploading(true);
+                  const url = await editor.uploadFile(file);
+                  editor.insertBlocks(
+                    [
+                      {
+                        type: "image",
+                        props: { url: url as string },
+                      },
+                    ] as any,
+                    editor.getTextCursorPosition().block,
+                    "after"
+                  );
+                } catch (err) {
+                  console.error("Image upload failed:", err);
+                } finally {
+                  setIsUploading(false);
+                }
+              }
+            };
+            input.click();
+          }}
+        />
+      )}
       <BlockNoteView
         editor={editor}
         editable={editable}
         theme={theme}
-        formattingToolbar={formattingToolbar}
+        formattingToolbar={floatingMenu ? false : formattingToolbar}
         linkToolbar={linkToolbar}
         sideMenu={computedSideMenu}
         slashMenu={false}

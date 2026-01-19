@@ -39,6 +39,20 @@
     "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif;
 }
 
+/* 링크 스타일 - Tailwind Preflight 리셋 복원 */
+.lumirEditor .bn-editor a,
+.lumirEditor .bn-inline-content a {
+  color: #0b6e99;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.lumirEditor .bn-editor a:hover,
+.lumirEditor .bn-inline-content a:hover {
+  color: #0b6e99;
+}
+
 /* CSS 변수를 사용한 패딩 설정 */
 .lumirEditor .bn-editor {
   padding-left: 25px;
@@ -50,6 +64,25 @@
 /* 문단 텍스트 크기 설정 */
 .lumirEditor [data-content-type="paragraph"] {
   font-size: 14px;
+}
+
+/* 빈 블록 정렬 시 스크롤 방지 */
+.lumirEditor .bn-block-content {
+  overflow: hidden;
+  max-width: 100%;
+}
+
+/* 정렬된 블록의 인라인 콘텐츠 - 빈 블록에서 스크롤 방지 */
+.lumirEditor .bn-inline-content {
+  overflow: hidden;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* 우측 정렬 시 빈 블록 placeholder 위치 수정 */
+.lumirEditor [data-text-alignment="right"] .bn-inline-content::before {
+  position: relative;
+  max-width: 100%;
 }
 
 /* 이미지 업로드 로딩 스피너 */
@@ -84,3 +117,837 @@
     transform: rotate(360deg);
   }
 }
+
+/* ========================================
+   Floating Toolbar 스타일 (컴팩트 + 반응형)
+   ======================================== */
+
+/* CSS 변수 정의 */
+.lumir-floating-toolbar-wrapper {
+  --lumir-bg-light: #fafaf9;
+  --lumir-bg-dark: #1c1917;
+  --lumir-paper-light: #ffffff;
+  --lumir-paper-dark: #292524;
+  --lumir-border-light: #e7e5e4;
+  --lumir-border-dark: #44403c;
+  --lumir-text-light: #1c1917;
+  --lumir-text-dark: #fafaf9;
+  --lumir-text-muted-light: #78716c;
+  --lumir-text-muted-dark: #a8a29e;
+  --lumir-hover-light: #f5f5f4;
+  --lumir-hover-dark: #44403c;
+  --lumir-active-bg: rgba(59, 130, 246, 0.1);
+  --lumir-active-color: #3b82f6;
+  --lumir-radius-lg: 0.5rem;
+  --lumir-radius-md: 0.25rem;
+  --lumir-transition: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --lumir-btn-size: 28px;
+  --lumir-btn-padding: 6px;
+  --lumir-icon-size: 16px;
+}
+
+/* Toolbar Wrapper */
+.lumir-floating-toolbar-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 8px 12px;
+  z-index: 40;
+}
+
+.lumir-floating-toolbar-wrapper[data-position="sticky"] {
+  position: sticky;
+  top: 0;
+}
+
+.lumir-floating-toolbar-wrapper[data-position="fixed"] {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  right: 0;
+}
+
+/* Toolbar Container - 항상 밝은 배경 유지 */
+.lumir-floating-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: var(--lumir-radius-lg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  max-width: 100%;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+}
+
+/* 1단 레이아웃 (넓은 화면) */
+.lumir-floating-toolbar {
+  flex-wrap: nowrap;
+}
+
+/* 2단 레이아웃 (좁은 화면) */
+.lumir-floating-toolbar.is-compact {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.lumir-floating-toolbar.is-compact .lumir-toolbar-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: center;
+  gap: 2px;
+}
+
+.lumir-floating-toolbar.is-compact .lumir-toolbar-row:not(:last-child) {
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--lumir-border-light);
+  margin-bottom: 4px;
+}
+
+/* Toolbar Group */
+.lumir-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 0 2px;
+}
+
+/* Divider */
+.lumir-toolbar-divider {
+  width: 1px;
+  height: 18px;
+  background-color: var(--lumir-border-light);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+/* 2단에서 divider 숨기기 */
+.lumir-floating-toolbar.is-compact .lumir-toolbar-divider.row-break {
+  display: none;
+}
+
+/* Toolbar Button (컴팩트) */
+.lumir-toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--lumir-btn-size);
+  height: var(--lumir-btn-size);
+  padding: var(--lumir-btn-padding);
+  border: none;
+  background: transparent;
+  color: var(--lumir-text-muted-light);
+  cursor: pointer;
+  border-radius: var(--lumir-radius-md);
+  transition: all var(--lumir-transition);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.lumir-toolbar-btn svg {
+  width: var(--lumir-icon-size);
+  height: var(--lumir-icon-size);
+}
+
+.lumir-toolbar-btn:hover {
+  background-color: var(--lumir-hover-light);
+  color: var(--lumir-text-light);
+}
+
+.lumir-toolbar-btn.is-active {
+  background-color: var(--lumir-active-bg);
+  color: var(--lumir-active-color);
+}
+
+.lumir-toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 색상 버튼 인디케이터 */
+.lumir-color-btn {
+  flex-direction: column;
+  gap: 1px;
+  width: var(--lumir-btn-size);
+  height: var(--lumir-btn-size);
+  padding: 4px;
+}
+
+.lumir-color-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.lumir-color-indicator {
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* SVG 아이콘 스타일 */
+.lumir-toolbar-btn svg,
+.lumir-dropdown-btn svg {
+  flex-shrink: 0;
+}
+
+/* Dropdown Wrapper */
+.lumir-dropdown-wrapper {
+  position: relative;
+}
+
+/* Dropdown Button (컴팩트) */
+.lumir-dropdown-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 90px;
+  max-width: 110px;
+  height: var(--lumir-btn-size);
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  border-radius: var(--lumir-radius-md);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all var(--lumir-transition);
+  gap: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.lumir-dropdown-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lumir-dropdown-btn:hover {
+  background-color: var(--lumir-hover-light);
+}
+
+.lumir-dropdown-btn.lumir-font-btn {
+  min-width: 100px;
+  max-width: 120px;
+}
+
+.lumir-dropdown-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--lumir-text-muted-light);
+}
+
+/* Dropdown Menu - 항상 밝은 배경 유지 */
+.lumir-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 160px;
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  z-index: 9999;
+  padding: 6px;
+  animation: lumir-dropdown-appear 0.15s ease;
+}
+
+@keyframes lumir-dropdown-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dropdown Item - 항상 밝은 스타일 */
+.lumir-dropdown-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: #374151 !important;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: background-color 0.1s ease;
+}
+
+.lumir-dropdown-item:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.lumir-dropdown-item.is-active {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  color: #3b82f6 !important;
+}
+
+/* Block Type Dropdown Button */
+.lumir-block-type-btn {
+  min-width: 110px;
+  max-width: 130px;
+  gap: 4px;
+  padding: 4px 8px;
+}
+
+.lumir-block-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: #6b7280;
+}
+
+.lumir-block-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.lumir-block-icon-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7280;
+  line-height: 1;
+}
+
+.lumir-block-label {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+/* Block Type Dropdown Menu - 최대 컴팩트 */
+.lumir-block-menu {
+  min-width: 160px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 3px;
+}
+
+/* 커스텀 스크롤바 - 더 얇게 */
+.lumir-block-menu::-webkit-scrollbar {
+  width: 4px;
+}
+
+.lumir-block-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lumir-block-menu::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 2px;
+}
+
+.lumir-block-menu::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af;
+}
+
+/* Block Type Menu Item - 최대 컴팩트 */
+.lumir-block-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-bottom: 0;
+  transition: all 0.1s ease;
+}
+
+.lumir-block-item:last-child {
+  margin-bottom: 0;
+}
+
+.lumir-block-item .lumir-block-icon {
+  width: 20px;
+  height: 20px;
+  background-color: #f3f4f6;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lumir-block-item .lumir-block-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.lumir-block-item .lumir-block-icon-text {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.lumir-block-item-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.lumir-block-item:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.lumir-block-item:hover .lumir-block-icon {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.lumir-block-item:hover .lumir-block-icon-text {
+  color: #374151;
+}
+
+.lumir-block-item.is-active {
+  background-color: rgba(59, 130, 246, 0.08) !important;
+}
+
+.lumir-block-item.is-active .lumir-block-icon {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.lumir-block-item.is-active .lumir-block-icon-text {
+  color: #3b82f6;
+}
+
+/* Block Type Category - 최대 컴팩트 */
+.lumir-block-category {
+  margin-bottom: 2px;
+}
+
+.lumir-block-category:last-child {
+  margin-bottom: 0;
+}
+
+.lumir-block-category-title {
+  font-size: 9px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 8px 2px;
+  margin-bottom: 0;
+}
+
+/* Block Item Title */
+.lumir-block-item:hover .lumir-block-item-title {
+  color: #1f2937;
+}
+
+.lumir-block-item.is-active .lumir-block-item-title {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+/* Toggle Heading 아이콘 - 컴팩트 */
+.lumir-block-icon-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #6b7280;
+  line-height: 1;
+}
+
+.lumir-block-icon-toggle svg {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+}
+
+.lumir-block-icon-toggle span {
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.lumir-block-item .lumir-block-icon-toggle {
+  font-size: 10px;
+}
+
+.lumir-block-item .lumir-block-icon-toggle svg {
+  width: 7px;
+  height: 7px;
+}
+
+.lumir-block-item .lumir-block-icon-toggle span {
+  font-size: 10px;
+}
+
+.lumir-block-item:hover .lumir-block-icon-toggle,
+.lumir-block-item.is-active .lumir-block-icon-toggle {
+  color: inherit;
+}
+
+/* Font Size Control (컴팩트) */
+.lumir-fontsize-control {
+  display: flex;
+  align-items: center;
+  height: var(--lumir-btn-size);
+  border-radius: var(--lumir-radius-md);
+  overflow: hidden;
+}
+
+.lumir-fontsize-control:hover {
+  background-color: var(--lumir-hover-light);
+}
+
+.lumir-fontsize-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--lumir-text-muted-light);
+  cursor: pointer;
+  transition: color var(--lumir-transition);
+}
+
+.lumir-fontsize-btn:hover {
+  color: var(--lumir-text-light);
+}
+
+.lumir-fontsize-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.lumir-fontsize-value {
+  min-width: 20px;
+  padding: 0 2px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  color: inherit;
+}
+
+/* Color Picker Menu */
+.lumir-color-menu {
+  min-width: 180px;
+  padding: 8px;
+}
+
+.lumir-color-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.lumir-color-swatch {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.lumir-color-swatch:hover {
+  transform: scale(1.15);
+  border-color: #3b82f6;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 1;
+}
+
+.lumir-color-swatch.is-active {
+  border-color: #3b82f6;
+  border-width: 2px;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.lumir-color-swatch.is-active::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.lumir-color-remove {
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  background-color: #f3f4f6;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lumir-color-remove:hover {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+/* Text Controls Group */
+.lumir-text-controls {
+  gap: 8px;
+}
+
+/* Link Input Menu - Compact */
+.lumir-link-menu {
+  min-width: 240px;
+  padding: 8px;
+  left: auto;
+  right: 0;
+}
+
+.lumir-link-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lumir-link-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.lumir-link-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.lumir-link-input::placeholder {
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.lumir-link-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.lumir-link-btn {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lumir-link-cancel {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.lumir-link-cancel:hover {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.lumir-link-submit {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+.lumir-link-submit:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.lumir-link-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* HTML Import Menu */
+.lumir-html-import-menu {
+  min-width: 360px;
+  max-width: 400px;
+  padding: 0;
+  left: auto;
+  right: 0;
+}
+
+.lumir-html-import-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.lumir-html-import-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.lumir-html-import-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lumir-html-file-btn {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px dashed #d1d5db;
+  border-radius: 6px;
+  background-color: #f9fafb;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.lumir-html-file-btn:hover {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+  color: #3b82f6;
+}
+
+.lumir-html-or-divider {
+  text-align: center;
+  font-size: 11px;
+  color: #9ca3af;
+  position: relative;
+}
+
+.lumir-html-or-divider::before,
+.lumir-html-or-divider::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: calc(50% - 25px);
+  height: 1px;
+  background-color: #e5e7eb;
+}
+
+.lumir-html-or-divider::before {
+  left: 0;
+}
+
+.lumir-html-or-divider::after {
+  right: 0;
+}
+
+.lumir-html-import-textarea {
+  width: 100%;
+  min-height: 150px;
+  max-height: 300px;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #1f2937;
+  background-color: #ffffff;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.lumir-html-import-textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.lumir-html-import-textarea::placeholder {
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.lumir-html-import-textarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lumir-html-import-textarea::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+.lumir-html-import-textarea::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.lumir-html-import-textarea::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.lumir-html-import-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.lumir-html-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lumir-html-cancel {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.lumir-html-cancel:hover {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.lumir-html-insert {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+.lumir-html-insert:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.lumir-html-insert:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 
+ * 플로팅 툴바는 다크모드와 관계없이 항상 밝은 스타일 유지
+ * 다크모드 오버라이드를 적용하지 않음
+ */

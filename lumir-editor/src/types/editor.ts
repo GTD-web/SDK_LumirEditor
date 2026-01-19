@@ -82,6 +82,9 @@ export interface LumirEditorProps {
   className?: string;
   // Add block(플러스) 버튼 토글: true = 표시, false(기본) = 숨김(드래그 핸들은 유지)
   sideMenuAddButton?: boolean;
+  // FloatingMenu 설정
+  floatingMenu?: boolean; // 상단 고정 플로팅 메뉴 표시 여부 (기본: false)
+  floatingMenuPosition?: "sticky" | "fixed"; // 플로팅 메뉴 위치 (기본: "sticky")
 
   // Callbacks / refs
   onContentChange?: (content: DefaultPartialBlock[]) => void;

@@ -48,6 +48,8 @@ export default function Home() {
                 },
                 appendUUID: true,
               }}
+              floatingMenu={true}
+              floatingMenuPosition="sticky"
               onContentChange={setContent}
               className="h-full"
               initialContent="이미지를 업로드해보세요! 🚀"
