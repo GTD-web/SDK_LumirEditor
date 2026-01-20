@@ -120,6 +120,10 @@ export const HtmlPreviewBlock = createReactBlockSpec(
       const handleOpenNewWindow = useCallback(
         (e: React.MouseEvent) => {
           e.stopPropagation();
+          
+          // 클라이언트 사이드에서만 실행
+          if (typeof window === 'undefined') return;
+          
           const newWindow = window.open("", "_blank");
           if (newWindow) {
             newWindow.document.write(htmlContent);

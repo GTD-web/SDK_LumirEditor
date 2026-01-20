@@ -107,6 +107,16 @@ const Icons = {
       <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
     </svg>
   ),
+  chevronRight: (
+    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+      <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+    </svg>
+  ),
+  chevronLeft: (
+    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+      <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+    </svg>
+  ),
   table: (
     <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
       <path d="M20 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM10 17H5v-2h5v2zm0-4H5v-2h5v2zm0-4H5V7h5v2zm9 8h-7v-2h7v2zm0-4h-7v-2h7v2zm0-4h-7V7h7v2z"/>
@@ -115,6 +125,11 @@ const Icons = {
   code: (
     <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
       <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+    </svg>
+  ),
+  htmlFile: (
+    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+      <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 2v5h5l-5-5zm-4 14H7v-1h2v1zm0-2H7v-1h2v1zm-2-2h2v1H7v-1zm4 4h-2v-1h2v1zm0-2h-2v-1h2v1zm0-2h-2v-1h2v1zm6 4h-4v-1h4v1zm0-2h-4v-1h4v1zm0-2h-4v-1h4v1z"/>
     </svg>
   ),
 };
@@ -1027,23 +1042,7 @@ const TableButton: React.FC<{ editor: EditorType | any }> = ({ editor }) => {
 
 // HTML Import 버튼
 const HTMLImportButton: React.FC<{ editor: EditorType | any }> = ({ editor }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [htmlContent, setHtmlContent] = useState("");
-  const [fileName, setFileName] = useState("");
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // 외부 클릭 감지
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1052,60 +1051,42 @@ const HTMLImportButton: React.FC<{ editor: EditorType | any }> = ({ editor }) =>
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
-      setHtmlContent(content);
-      setFileName(file.name);
+      
+      try {
+        if (!editor || !content.trim()) return;
+
+        const block = editor?.getTextCursorPosition()?.block;
+        if (!block || !editor?.insertBlocks) return;
+
+        // htmlPreview 블록 삽입
+        editor.insertBlocks(
+          [
+            {
+              type: "htmlPreview",
+              props: {
+                htmlContent: content,
+                fileName: file.name,
+                height: "400px",
+              },
+            } as any,
+          ],
+          block,
+          "after"
+        );
+
+        // file input 초기화
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      } catch (err) {
+        console.error("HTML insert failed:", err);
+      }
     };
     reader.readAsText(file);
-  }, []);
+  }, [editor]);
 
-  const handleFileSelect = useCallback(() => {
+  const handleClick = useCallback(() => {
     fileInputRef.current?.click();
-  }, []);
-
-  const handleInsert = useCallback(() => {
-    try {
-      if (!editor || !htmlContent.trim()) return;
-
-      const block = editor?.getTextCursorPosition()?.block;
-      if (!block || !editor?.insertBlocks) return;
-
-      // htmlPreview 블록 삽입
-      editor.insertBlocks(
-        [
-          {
-            type: "htmlPreview",
-            props: {
-              htmlContent: htmlContent,
-              fileName: fileName || "HTML Document",
-              height: "400px",
-            },
-          } as any,
-        ],
-        block,
-        "after"
-      );
-
-      // 초기화 및 닫기
-      setHtmlContent("");
-      setFileName("");
-      setIsOpen(false);
-      
-      // file input 초기화
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    } catch (err) {
-      console.error("HTML insert failed:", err);
-    }
-  }, [editor, htmlContent, fileName]);
-
-  const handleCancel = useCallback(() => {
-    setHtmlContent("");
-    setFileName("");
-    setIsOpen(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   }, []);
 
   // 버튼 클릭 시 에디터 포커스/선택 영역 유지
@@ -1114,79 +1095,30 @@ const HTMLImportButton: React.FC<{ editor: EditorType | any }> = ({ editor }) =>
   }, []);
 
   return (
-    <div className="lumir-dropdown-wrapper" ref={dropdownRef}>
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".html,.htm"
+        onChange={handleFileUpload}
+        style={{ display: "none" }}
+      />
       <button
         className="lumir-toolbar-btn"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleClick}
         onMouseDown={handleMouseDown}
         title="HTML Import"
         type="button"
       >
-        {Icons.code}
+        {Icons.htmlFile}
       </button>
-      {isOpen && (
-        <div className="lumir-dropdown-menu lumir-html-import-menu">
-          <div className="lumir-html-import-header">
-            <span className="lumir-html-import-title">HTML Import</span>
-          </div>
-          
-          <div className="lumir-html-import-body">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".html,.htm"
-              onChange={handleFileUpload}
-              style={{ display: "none" }}
-            />
-            
-            <button
-              className="lumir-html-file-btn"
-              onClick={handleFileSelect}
-              onMouseDown={handleMouseDown}
-              type="button"
-            >
-              {fileName ? `📄 ${fileName}` : "HTML 파일 선택"}
-            </button>
-
-            <div className="lumir-html-or-divider">또는</div>
-
-            <textarea
-              ref={textareaRef}
-              className="lumir-html-import-textarea"
-              placeholder="HTML 코드를 직접 입력하세요..."
-              value={htmlContent}
-              onChange={(e) => setHtmlContent(e.target.value)}
-              onMouseDown={handleMouseDown}
-            />
-
-            <div className="lumir-html-import-actions">
-              <button
-                className="lumir-html-btn lumir-html-cancel"
-                onClick={handleCancel}
-                onMouseDown={handleMouseDown}
-                type="button"
-              >
-                취소
-              </button>
-              <button
-                className="lumir-html-btn lumir-html-insert"
-                onClick={handleInsert}
-                onMouseDown={handleMouseDown}
-                disabled={!htmlContent.trim()}
-                type="button"
-              >
-                삽입
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 
 // 반응형 브레이크포인트 (px)
 const COMPACT_BREAKPOINT = 700;
+const MINIMIZED_BREAKPOINT = 400;
 
 // 메인 FloatingMenu 컴포넌트
 export const FloatingMenu: React.FC<FloatingMenuProps> = ({
@@ -1197,6 +1129,8 @@ export const FloatingMenu: React.FC<FloatingMenuProps> = ({
 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [isCompact, setIsCompact] = useState(false);
+  const [isMinimizable, setIsMinimizable] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   // 선택 변경 시 리렌더링을 위한 카운터
   const [, setSelectionTick] = useState(0);
 
@@ -1241,6 +1175,7 @@ export const FloatingMenu: React.FC<FloatingMenuProps> = ({
       if (wrapperRef.current) {
         const width = wrapperRef.current.offsetWidth;
         setIsCompact(width < COMPACT_BREAKPOINT);
+        setIsMinimizable(width < MINIMIZED_BREAKPOINT);
       }
     };
 
@@ -1253,6 +1188,61 @@ export const FloatingMenu: React.FC<FloatingMenuProps> = ({
 
     return () => resizeObserver.disconnect();
   }, []);
+
+  // 최소화된 레이아웃 (400px 이하)
+  const MinimizedLayout = () => (
+    <>
+      <button
+        className="lumir-toolbar-button lumir-toggle-button"
+        onClick={() => setIsMinimized(!isMinimized)}
+        onMouseDown={(e) => e.preventDefault()}
+        type="button"
+        title={isMinimized ? "메뉴 펼치기" : "메뉴 접기"}
+      >
+        {isMinimized ? Icons.chevronRight : Icons.chevronLeft}
+      </button>
+      {!isMinimized && (
+        <>
+          <ToolbarDivider />
+          <UndoRedoButtons editor={editor} />
+          <ToolbarDivider />
+          <div className="lumir-toolbar-group">
+            <BlockTypeSelect editor={editor} />
+          </div>
+          <ToolbarDivider />
+          <div className="lumir-toolbar-group">
+            <TextStyleButton editor={editor} style="bold" />
+            <TextStyleButton editor={editor} style="italic" />
+            <TextStyleButton editor={editor} style="underline" />
+            <TextStyleButton editor={editor} style="strike" />
+          </div>
+          <ToolbarDivider />
+          <div className="lumir-toolbar-group">
+            <AlignButton editor={editor} alignment="left" />
+            <AlignButton editor={editor} alignment="center" />
+            <AlignButton editor={editor} alignment="right" />
+          </div>
+          <ToolbarDivider />
+          <div className="lumir-toolbar-group">
+            <ListButton editor={editor} type="bullet" />
+            <ListButton editor={editor} type="numbered" />
+          </div>
+          <ToolbarDivider />
+          <div className="lumir-toolbar-group">
+            <ColorButton editor={editor} type="text" />
+            <ColorButton editor={editor} type="background" />
+          </div>
+          <ToolbarDivider />
+          <div className="lumir-toolbar-group">
+            <ImageButton editor={editor} onImageUpload={onImageUpload} />
+            <LinkButton editor={editor} />
+            <TableButton editor={editor} />
+            <HTMLImportButton editor={editor} />
+          </div>
+        </>
+      )}
+    </>
+  );
 
   // 1단 레이아웃
   const SingleRowLayout = () => (
@@ -1344,11 +1334,26 @@ export const FloatingMenu: React.FC<FloatingMenuProps> = ({
   return (
     <div
       ref={wrapperRef}
-      className={cn("lumir-floating-toolbar-wrapper", className)}
+      className={cn(
+        "lumir-floating-toolbar-wrapper",
+        isMinimizable && "is-minimizable",
+        className
+      )}
       data-position={position}
     >
-      <div className={cn("lumir-floating-toolbar", isCompact && "is-compact")}>
-        {isCompact ? <TwoRowLayout /> : <SingleRowLayout />}
+      <div className={cn(
+        "lumir-floating-toolbar",
+        isCompact && "is-compact",
+        isMinimizable && "is-minimizable",
+        isMinimized && "is-minimized"
+      )}>
+        {isMinimizable ? (
+          <MinimizedLayout />
+        ) : isCompact ? (
+          <TwoRowLayout />
+        ) : (
+          <SingleRowLayout />
+        )}
       </div>
     </div>
   );

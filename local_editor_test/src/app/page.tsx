@@ -36,7 +36,7 @@ export default function Home() {
         </div>
 
         {/* 에디터 */}
-        <div className="w-full h-[700px] rounded-lg">
+        <div className="w-[400px] h-[500px] rounded-lg">
           {isMounted && (
             <LumirEditor
               s3Upload={{
@@ -52,7 +52,7 @@ export default function Home() {
               floatingMenuPosition="sticky"
               onContentChange={setContent}
               className="h-full"
-              initialContent="이미지를 업로드해보세요! 🚀"
+              initialContent="이미지를 업로드해보세요!"
             />
           )}
         </div>
