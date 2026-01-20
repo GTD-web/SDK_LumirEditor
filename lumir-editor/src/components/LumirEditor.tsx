@@ -193,6 +193,69 @@ const isHtmlFile = (file: File): boolean => {
   );
 };
 
+// ============================================
+// 🔒 보안 유틸리티 함수
+// ============================================
+
+/**
+ * HTML 특수문자 이스케이프 (XSS 방지)
+ * URL이나 사용자 입력을 HTML에 삽입할 때 사용
+ */
+const escapeHtml = (str: string): string => {
+  const htmlEscapes: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  };
+  return str.replace(/[&<>"']/g, (char) => htmlEscapes[char]);
+};
+
+/**
+ * 블록 배열에서 모든 이미지 URL 추출
+ * (중첩된 children도 재귀적으로 탐색)
+ */
+const extractImageUrls = (blocks: DefaultPartialBlock[]): Set<string> => {
+  const urls = new Set<string>();
+
+  const traverse = (blockList: DefaultPartialBlock[]) => {
+    for (const block of blockList) {
+      // image 블록에서 URL 추출
+      if (block.type === "image" && (block.props as any)?.url) {
+        const url = (block.props as any).url;
+        if (typeof url === "string" && url.trim()) {
+          urls.add(url);
+        }
+      }
+      // children이 있으면 재귀 탐색
+      if (block.children && Array.isArray(block.children)) {
+        traverse(block.children as DefaultPartialBlock[]);
+      }
+    }
+  };
+
+  traverse(blocks);
+  return urls;
+};
+
+/**
+ * 삭제된 이미지 URL 찾기
+ * (이전 블록에는 있었지만 현재 블록에는 없는 URL)
+ */
+const findDeletedImageUrls = (
+  previousUrls: Set<string>,
+  currentUrls: Set<string>
+): string[] => {
+  const deleted: string[] = [];
+  previousUrls.forEach((url) => {
+    if (!currentUrls.has(url)) {
+      deleted.push(url);
+    }
+  });
+  return deleted;
+};
+
 export default function LumirEditor({
   // editor options
   initialContent,
@@ -225,6 +288,7 @@ export default function LumirEditor({
   // callbacks / refs
   onContentChange,
   onError,
+  onImageDelete,
 }: LumirEditorProps) {
   // 이미지 업로드 로딩 상태
   const [isUploading, setIsUploading] = useState(false);
@@ -387,7 +451,10 @@ export default function LumirEditor({
               try {
                 // 에디터의 uploadFile 함수 사용 (통일된 로직)
                 const url = await editor.uploadFile(file);
-                editor.pasteHTML(`<img src="${url}" alt="image" />`);
+                // 🔒 XSS 방지: URL을 HTML 이스케이프 처리
+                editor.pasteHTML(
+                  `<img src="${escapeHtml(url)}" alt="image" />`
+                );
               } catch (err) {
                 console.warn(
                   "Image upload failed, skipped:",
@@ -436,6 +503,40 @@ export default function LumirEditor({
     return editor.onEditorContentChange(handleContentChange);
   }, [editor, onContentChange]);
 
+  // 이미지 삭제 감지 (onImageDelete 콜백)
+  const previousImageUrlsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!editor) return;
+
+    // 초기 이미지 URL 수집
+    const initialBlocks = editor.topLevelBlocks as DefaultPartialBlock[];
+    previousImageUrlsRef.current = extractImageUrls(initialBlocks);
+  }, [editor]);
+
+  useEffect(() => {
+    if (!editor || !onImageDelete) return;
+
+    const handleImageDeleteCheck = () => {
+      const currentBlocks = editor.topLevelBlocks as DefaultPartialBlock[];
+      const currentUrls = extractImageUrls(currentBlocks);
+      const previousUrls = previousImageUrlsRef.current;
+
+      // 삭제된 이미지 URL 찾기
+      const deletedUrls = findDeletedImageUrls(previousUrls, currentUrls);
+
+      // 삭제된 각 이미지에 대해 콜백 호출
+      deletedUrls.forEach((url) => {
+        onImageDelete(url);
+      });
+
+      // 현재 상태를 이전 상태로 업데이트
+      previousImageUrlsRef.current = currentUrls;
+    };
+
+    return editor.onEditorContentChange(handleImageDeleteCheck);
+  }, [editor, onImageDelete]);
+
   // 드래그앤드롭 이미지/HTML 처리
   useEffect(() => {
     const el = editor?.domElement as HTMLElement | undefined;
@@ -482,8 +583,11 @@ export default function LumirEditor({
             try {
               if (editor?.uploadFile) {
                 const url = await editor.uploadFile(file);
-                if (url) {
-                  editor.pasteHTML(`<img src="${url}" alt="image" />`);
+                if (url && typeof url === "string") {
+                  // 🔒 XSS 방지: URL을 HTML 이스케이프 처리
+                  editor.pasteHTML(
+                    `<img src="${escapeHtml(url)}" alt="image" />`
+                  );
                 }
               }
             } catch (err) {

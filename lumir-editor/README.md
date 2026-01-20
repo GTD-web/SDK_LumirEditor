@@ -17,6 +17,7 @@
   - [S3 업로드 설정](#1-s3-업로드-권장)
   - [파일명 커스터마이징](#파일명-커스터마이징)
   - [커스텀 업로더](#2-커스텀-업로더)
+- [이미지 삭제](#이미지-삭제)
 - [HTML 미리보기](#html-미리보기)
 - [Props API](#props-api)
 - [사용 예제](#사용-예제)
@@ -331,6 +332,118 @@ const imageUrl = await s3Uploader(imageFile);
 
 ---
 
+## 이미지 삭제
+
+에디터에서 이미지가 삭제될 때 S3 등 외부 스토리지에서도 자동으로 삭제하고 싶다면 `onImageDelete` 콜백을 사용하세요.
+
+### 기본 사용
+
+```tsx
+<LumirEditor
+  s3Upload={{
+    apiEndpoint: "/api/s3/presigned",
+    env: "production",
+    path: "images",
+  }}
+  onImageDelete={(imageUrl) => {
+    console.log("이미지 삭제됨:", imageUrl);
+    // S3에서 삭제 로직 구현
+  }}
+/>
+```
+
+### 권장: 지연 삭제 (Undo/Redo 대응)
+
+Undo로 이미지를 복원할 수 있도록 **지연 삭제**를 권장합니다.
+
+```tsx
+"use client";
+
+import { useState, useRef, useCallback } from "react";
+
+function Editor() {
+  const pendingDeletes = useRef(new Map());
+
+  const handleImageDelete = useCallback((imageUrl: string) => {
+    // 이미 예약된 삭제가 있으면 무시
+    if (pendingDeletes.current.has(imageUrl)) return;
+
+    // 5분 후 삭제 예약
+    const timeoutId = setTimeout(async () => {
+      pendingDeletes.current.delete(imageUrl);
+      
+      // S3에서 실제 삭제
+      await fetch(`/api/s3/delete?url=${encodeURIComponent(imageUrl)}`, {
+        method: "DELETE",
+      });
+    }, 5 * 60 * 1000); // 5분
+
+    pendingDeletes.current.set(imageUrl, timeoutId);
+  }, []);
+
+  return (
+    <LumirEditor
+      s3Upload={{ /* ... */ }}
+      onImageDelete={handleImageDelete}
+    />
+  );
+}
+```
+
+### S3 삭제 API 예시
+
+**Next.js API Route** (`app/api/s3/delete/route.ts`):
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
+
+const s3 = new S3Client({
+  region: process.env.AWS_REGION!,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
+
+export async function DELETE(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const imageUrl = searchParams.get("url");
+
+  if (!imageUrl) {
+    return NextResponse.json({ error: "url is required" }, { status: 400 });
+  }
+
+  // URL에서 S3 키 추출
+  const key = extractKeyFromUrl(imageUrl);
+
+  await s3.send(
+    new DeleteObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET!,
+      Key: key,
+    })
+  );
+
+  return NextResponse.json({ success: true });
+}
+
+function extractKeyFromUrl(url: string): string {
+  const urlObj = new URL(url);
+  return decodeURIComponent(urlObj.pathname.slice(1));
+}
+```
+
+### 주의사항
+
+| 항목 | 설명 |
+|------|------|
+| **Undo/Redo** | 지연 삭제로 복원 가능하게 구현 (권장: 5-10분) |
+| **권한 검증** | 프로덕션에서는 인증/인가 필수 |
+| **참조 카운트** | 같은 이미지를 여러 문서에서 사용하는지 확인 |
+| **삭제 로그** | 감사 추적을 위한 삭제 기록 저장 권장 |
+
+---
+
 ## HTML 미리보기
 
 LumirEditor는 HTML 파일을 iframe을 사용하여 미리보기할 수 있는 커스텀 블록을 제공합니다. 편집 불가능한 순수 미리보기 기능으로, HTML 문서를 안전하게 표시할 수 있습니다.
@@ -426,6 +539,7 @@ editor.insertBlocks([
 | `s3Upload`        | `S3UploaderConfig`                    | `undefined` | S3 업로드 설정          |
 | `uploadFile`      | `(file: File) => Promise<string>`     | `undefined` | 커스텀 업로드 함수      |
 | `onContentChange` | `(blocks) => void`                    | `undefined` | 콘텐츠 변경 콜백        |
+| `onImageDelete`   | `(imageUrl: string) => void`          | `undefined` | 이미지 삭제 시 콜백     |
 | `onError`         | `(error: LumirEditorError) => void`   | `undefined` | 에러 발생 시 콜백       |
 | `initialContent`  | `Block[] \| string`                   | `undefined` | 초기 콘텐츠             |
 | `editable`        | `boolean`                             | `true`      | 편집 가능 여부          |
@@ -470,6 +584,7 @@ interface LumirEditorProps {
 
   // === 콜백 ===
   onContentChange?: (blocks: DefaultPartialBlock[]) => void; // 콘텐츠 변경 시 호출
+  onImageDelete?: (imageUrl: string) => void; // 이미지 삭제 시 호출 (S3 삭제 등)
   onSelectionChange?: () => void; // 선택 영역 변경 시 호출
   onError?: (error: LumirEditorError) => void; // 에러 발생 시 호출
 
@@ -700,6 +815,22 @@ const url = await uploader(imageFile);
 ---
 
 ## 변경 로그
+
+### v0.4.3
+
+- **이미지 삭제 기능 추가**
+  - `onImageDelete` 콜백 prop 추가 - 에디터에서 이미지 삭제 시 호출
+  - S3 등 외부 스토리지에서 이미지 자동 삭제 지원
+  - 지연 삭제 패턴으로 Undo/Redo 대응 가능
+  - 이미지 URL 추출 및 삭제 감지 헬퍼 함수 내장
+- **보안 강화**
+  - URL 이스케이프 처리 추가 (XSS 방지)
+  - LinkButton: `javascript:`, `data:`, `vbscript:`, `file:` 프로토콜 차단
+  - 위험한 URL 입력 시 에러 메시지 표시
+- **README 개선**
+  - 이미지 삭제 섹션 추가 (지연 삭제 예시 포함)
+  - S3 삭제 API 구현 예시 추가
+  - Props API 문서 업데이트
 
 ### v0.4.2
 
