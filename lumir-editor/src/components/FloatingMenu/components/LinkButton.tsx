@@ -9,10 +9,32 @@ interface LinkButtonProps {
 }
 
 /**
- * URL 프로토콜 자동 추가 유틸리티
+ * 🔒 위험한 URL 프로토콜 검증
+ * javascript:, data:, vbscript: 등 XSS 공격에 사용될 수 있는 프로토콜 차단
  */
-const normalizeUrl = (url: string): string => {
+const isDangerousProtocol = (url: string): boolean => {
+  const trimmedUrl = url.trim().toLowerCase();
+  // 위험한 프로토콜 패턴
+  const dangerousPatterns = [
+    /^javascript:/i,
+    /^data:/i,
+    /^vbscript:/i,
+    /^file:/i,
+  ];
+  return dangerousPatterns.some((pattern) => pattern.test(trimmedUrl));
+};
+
+/**
+ * URL 프로토콜 자동 추가 유틸리티 (보안 강화)
+ */
+const normalizeUrl = (url: string): string | null => {
   const trimmedUrl = url.trim();
+
+  // 🔒 위험한 프로토콜 차단
+  if (isDangerousProtocol(trimmedUrl)) {
+    console.warn("Blocked dangerous URL protocol:", trimmedUrl);
+    return null;
+  }
 
   // 이미 프로토콜이 있는 경우 그대로 반환
   if (/^https?:\/\//i.test(trimmedUrl)) {
@@ -34,6 +56,7 @@ const normalizeUrl = (url: string): string => {
 export const LinkButton: React.FC<LinkButtonProps> = ({ editor }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -46,6 +69,7 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor }) => {
       ) {
         setIsOpen(false);
         setLinkUrl("");
+        setErrorMsg(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -62,15 +86,25 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor }) => {
   const handleSubmit = useCallback(
     (e?: React.FormEvent) => {
       e?.preventDefault();
+      setErrorMsg(null);
+
       try {
         if (linkUrl.trim() && editor?.createLink) {
           const normalizedUrl = normalizeUrl(linkUrl);
+
+          // 🔒 위험한 URL인 경우 차단
+          if (normalizedUrl === null) {
+            setErrorMsg("허용되지 않는 URL 형식입니다.");
+            return;
+          }
+
           editor.createLink(normalizedUrl);
           setIsOpen(false);
           setLinkUrl("");
         }
       } catch (err) {
         console.error("Create link failed:", err);
+        setErrorMsg("링크 생성에 실패했습니다.");
       }
     },
     [editor, linkUrl]
@@ -79,6 +113,7 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor }) => {
   const handleCancel = useCallback(() => {
     setIsOpen(false);
     setLinkUrl("");
+    setErrorMsg(null);
   }, []);
 
   // 버튼 클릭 시 에디터 포커스/선택 영역 유지
@@ -117,10 +152,26 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor }) => {
               className="lumir-link-input"
               placeholder="링크 URL을 입력하세요"
               value={linkUrl}
-              onChange={(e) => setLinkUrl(e.target.value)}
+              onChange={(e) => {
+                setLinkUrl(e.target.value);
+                setErrorMsg(null);
+              }}
               onKeyDown={handleKeyDown}
               onMouseDown={handleMouseDown}
             />
+            {/* 에러 메시지 표시 */}
+            {errorMsg && (
+              <div
+                style={{
+                  color: "#dc3545",
+                  fontSize: "12px",
+                  marginTop: "4px",
+                  padding: "0 4px",
+                }}
+              >
+                {errorMsg}
+              </div>
+            )}
             <div className="lumir-link-actions">
               <button
                 type="button"

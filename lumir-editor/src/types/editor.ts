@@ -91,4 +91,11 @@ export interface LumirEditorProps {
   onContentChange?: (content: DefaultPartialBlock[]) => void;
   /** 에러 발생 시 호출되는 콜백 */
   onError?: (error: LumirEditorError) => void;
+  /**
+   * 이미지가 에디터에서 삭제될 때 호출되는 콜백
+   * - S3 등 외부 스토리지에서 이미지를 삭제하는 용도로 사용
+   * - Undo/Redo를 고려하여 지연 삭제를 권장
+   * @param imageUrl 삭제된 이미지의 URL
+   */
+  onImageDelete?: (imageUrl: string) => void;
 }

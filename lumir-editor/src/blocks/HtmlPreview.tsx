@@ -18,7 +18,81 @@ export interface HtmlPreviewProps {
 const MIN_HEIGHT = 100;
 const MAX_HEIGHT = 1200;
 
+// ============================================
+// 보안 유틸리티 함수
+// ============================================
+
+/**
+ * HTML에 charset이 없으면 UTF-8 meta 태그 추가
+ * (원본 HTML을 최소한으로만 수정하여 인코딩 깨짐 방지)
+ */
+const ensureCharset = (html: string): string => {
+  // 이미 charset이 있으면 원본 그대로 반환
+  const hasCharset = /<meta[^>]+charset\s*=/i.test(html);
+  if (hasCharset) {
+    return html;
+  }
+
+  // <head> 태그가 있으면 그 안에 추가
+  if (/<head[^>]*>/i.test(html)) {
+    return html.replace(/(<head[^>]*>)/i, '$1\n<meta charset="UTF-8">');
+  }
+
+  // <html> 태그만 있으면 <head> 추가
+  if (/<html[^>]*>/i.test(html)) {
+    return html.replace(
+      /(<html[^>]*>)/i,
+      '$1\n<head><meta charset="UTF-8"></head>'
+    );
+  }
+
+  // HTML fragment인 경우 최소한의 구조 추가
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+${html}
+</body>
+</html>`;
+};
+
+/**
+ * 파일명 새니타이제이션 (경로 조작 방지)
+ */
+const sanitizeFileName = (fileName: string): string => {
+  if (!fileName || typeof fileName !== "string") {
+    return `document_${Date.now()}.html`;
+  }
+
+  return (
+    fileName
+      .replace(/\0/g, "") // Null byte 제거
+      .replace(/[\/\\]/g, "_") // 경로 구분자 제거
+      .replace(/[<>:"|?*\x00-\x1f]/g, "") // 위험한 문자 제거
+      .replace(/\.{2,}/g, ".") // 연속된 점 제거
+      .trim()
+      .replace(/^\.+|\.+$/g, "") || `document_${Date.now()}.html` // 앞뒤 점 제거
+  );
+};
+
+/**
+ * Blob URL 생성 (UTF-8 인코딩 명시)
+ */
+const createSecureBlobUrl = (htmlContent: string): string => {
+  const htmlWithCharset = ensureCharset(htmlContent);
+
+  // UTF-8 인코딩 명시
+  const blob = new Blob([htmlWithCharset], {
+    type: "text/html;charset=utf-8",
+  });
+
+  return URL.createObjectURL(blob);
+};
+
+// ============================================
 // HTML 미리보기 블록 스펙
+// ============================================
+
 export const HtmlPreviewBlock = createReactBlockSpec(
   {
     type: "htmlPreview",
@@ -49,11 +123,10 @@ export const HtmlPreviewBlock = createReactBlockSpec(
       // 현재 높이 (숫자로 파싱)
       const currentHeight = parseInt(savedHeight, 10) || 400;
 
-      // HTML 내용을 Blob URL로 변환 (CORS 문제 해결)
+      // UTF-8 인코딩 보장된 Blob URL 생성
       useEffect(() => {
         if (htmlContent) {
-          const blob = new Blob([htmlContent], { type: "text/html" });
-          const url = URL.createObjectURL(blob);
+          const url = createSecureBlobUrl(htmlContent);
           setBlobUrl(url);
 
           return () => {
@@ -97,17 +170,29 @@ export const HtmlPreviewBlock = createReactBlockSpec(
         [currentHeight, props.editor, props.block]
       );
 
-      // HTML 파일 다운로드 (Export)
+      // HTML 파일 다운로드 (원본 그대로 + 인코딩 보장)
       const handleExport = useCallback(
         (e: React.MouseEvent) => {
           e.stopPropagation();
-          const blob = new Blob([htmlContent], { type: "text/html" });
+
+          // 파일명 새니타이제이션 (경로 조작 방지)
+          const safeFileName = sanitizeFileName(fileName);
+          const downloadName = safeFileName.endsWith(".html")
+            ? safeFileName
+            : `${safeFileName}.html`;
+
+          // UTF-8 인코딩 명시
+          const htmlWithCharset = ensureCharset(htmlContent);
+          const blob = new Blob([htmlWithCharset], {
+            type: "text/html;charset=utf-8",
+          });
+
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = fileName.endsWith(".html")
-            ? fileName
-            : `${fileName}.html`;
+          a.download = downloadName;
+          a.rel = "noopener noreferrer"; // 보안 속성 추가
+
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -116,18 +201,25 @@ export const HtmlPreviewBlock = createReactBlockSpec(
         [htmlContent, fileName]
       );
 
-      // 새 창에서 열기
+      // 새 창에서 열기 (Blob URL 방식 - XSS 방지)
       const handleOpenNewWindow = useCallback(
         (e: React.MouseEvent) => {
           e.stopPropagation();
-          
+
           // 클라이언트 사이드에서만 실행
-          if (typeof window === 'undefined') return;
-          
-          const newWindow = window.open("", "_blank");
+          if (typeof window === "undefined") return;
+
+          // Blob URL 생성 (UTF-8 인코딩 보장)
+          const url = createSecureBlobUrl(htmlContent);
+
+          // noopener, noreferrer로 보안 강화
+          const newWindow = window.open(url, "_blank", "noopener,noreferrer");
+
+          // Blob URL 정리
           if (newWindow) {
-            newWindow.document.write(htmlContent);
-            newWindow.document.close();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          } else {
+            URL.revokeObjectURL(url);
           }
         },
         [htmlContent]
@@ -208,6 +300,7 @@ export const HtmlPreviewBlock = createReactBlockSpec(
                   borderRadius: "4px",
                 }}
                 title="새 창에서 열기"
+                type="button"
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLButtonElement).style.backgroundColor =
                     "#f0f0f0";
@@ -248,6 +341,7 @@ export const HtmlPreviewBlock = createReactBlockSpec(
                   borderRadius: "4px",
                 }}
                 title="HTML 다운로드"
+                type="button"
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLButtonElement).style.backgroundColor =
                     "#f0f0f0";
@@ -284,6 +378,7 @@ export const HtmlPreviewBlock = createReactBlockSpec(
                 position: "relative",
               }}
             >
+              {/* 🔒 보안 강화: JavaScript 완전 차단 + 부모 페이지 접근 차단 */}
               <iframe
                 src={blobUrl || "about:blank"}
                 style={{
@@ -293,8 +388,13 @@ export const HtmlPreviewBlock = createReactBlockSpec(
                   display: "block",
                   pointerEvents: isResizing ? "none" : "auto",
                 }}
-                sandbox="allow-same-origin"
+                // 🔒 allow-scripts 제거 = JavaScript 실행 차단
+                // 🔒 allow-same-origin 제거 = 부모 페이지 접근 차단
+                // ✅ HTML + CSS만 렌더링 (안전)
+                sandbox="allow-popups allow-forms"
                 title={fileName}
+                referrerPolicy="no-referrer"
+                loading="lazy"
               />
 
               {/* 리사이즈 핸들 */}
