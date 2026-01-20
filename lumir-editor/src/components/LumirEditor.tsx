@@ -17,6 +17,7 @@ import type { DefaultPartialBlock, LumirEditorProps } from "../types";
 import { createS3Uploader } from "../utils/s3-uploader";
 import { schema } from "../blocks/HtmlPreview";
 import { FloatingMenu } from "./FloatingMenu";
+import { LumirEditorError } from "../errors/LumirEditorError";
 
 // ==========================================
 // 유틸리티 클래스들
@@ -223,9 +224,25 @@ export default function LumirEditor({
   floatingMenuPosition = "sticky",
   // callbacks / refs
   onContentChange,
+  onError,
 }: LumirEditorProps) {
   // 이미지 업로드 로딩 상태
   const [isUploading, setIsUploading] = useState(false);
+  // 에러 상태 (사용자에게 표시할 에러 메시지)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // 에러 처리 핸들러
+  const handleError = useCallback(
+    (error: LumirEditorError) => {
+      // 콜백이 있으면 호출
+      onError?.(error);
+      // 사용자에게 에러 메시지 표시
+      setErrorMessage(error.getUserMessage());
+      // 3초 후 에러 메시지 자동 숨김
+      setTimeout(() => setErrorMessage(null), 3000);
+    },
+    [onError]
+  );
   const validatedContent = useMemo<DefaultPartialBlock[]>(() => {
     return ContentUtils.validateContent(initialContent, initialEmptyBlocks);
   }, [initialContent, initialEmptyBlocks]);
@@ -302,7 +319,9 @@ export default function LumirEditor({
       uploadFile: async (file) => {
         // 이미지 파일만 허용 (이미지 전용 에디터)
         if (!isImageFile(file)) {
-          throw new Error("Only image files are allowed");
+          const error = LumirEditorError.invalidFileType(file.name);
+          handleError(error);
+          throw error;
         }
 
         try {
@@ -319,17 +338,26 @@ export default function LumirEditor({
           }
           // 3. 업로드 방법이 없으면 에러
           else {
-            throw new Error("No upload method available");
+            const error = LumirEditorError.s3ConfigError(
+              "No upload method available. Please provide uploadFile or s3Upload configuration."
+            );
+            handleError(error);
+            throw error;
           }
 
           // BlockNote가 자동으로 이미지 블록을 생성하도록 URL만 반환
           return imageUrl;
         } catch (error) {
-          console.error("Image upload failed:", error);
-          throw new Error(
-            "Upload failed: " +
-              (error instanceof Error ? error.message : String(error))
+          // 이미 LumirEditorError인 경우 다시 처리하지 않음
+          if (error instanceof LumirEditorError) {
+            throw error;
+          }
+          const lumirError = LumirEditorError.uploadFailed(
+            error instanceof Error ? error.message : String(error),
+            error instanceof Error ? error : undefined
           );
+          handleError(lumirError);
+          throw lumirError;
         }
       },
       pasteHandler: (ctx) => {
@@ -572,7 +600,7 @@ export default function LumirEditor({
         editor={editor}
         editable={editable}
         theme={theme}
-        formattingToolbar={floatingMenu ? false : formattingToolbar}
+        formattingToolbar={formattingToolbar}
         linkToolbar={linkToolbar}
         sideMenu={computedSideMenu}
         slashMenu={false}
@@ -679,6 +707,21 @@ export default function LumirEditor({
       {isUploading && (
         <div className="lumirEditor-upload-overlay">
           <div className="lumirEditor-spinner" />
+        </div>
+      )}
+
+      {/* 에러 메시지 토스트 */}
+      {errorMessage && (
+        <div className="lumirEditor-error-toast">
+          <span className="lumirEditor-error-icon">⚠️</span>
+          <span className="lumirEditor-error-message">{errorMessage}</span>
+          <button
+            className="lumirEditor-error-close"
+            onClick={() => setErrorMessage(null)}
+            type="button"
+          >
+            ✕
+          </button>
         </div>
       )}
     </div>

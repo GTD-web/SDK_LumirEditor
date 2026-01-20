@@ -36,7 +36,7 @@ export default function Home() {
         </div>
 
         {/* 에디터 */}
-        <div className="w-[400px] h-[500px] rounded-lg">
+        <div className="w-full h-[500px] rounded-lg">
           {isMounted && (
             <LumirEditor
               s3Upload={{

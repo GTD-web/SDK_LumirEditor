@@ -349,7 +349,7 @@ HTML 파일(`.html`, `.htm`)을 에디터에 드래그 앤 드롭하면 자동�
 - **특징**:
   - 편집 불가능한 순수 미리보기
   - 접기/펼치기 기능
-  - 안전한 sandbox 처리 (`allow-scripts allow-same-origin`)
+  - 안전한 sandbox 처리 (`allow-same-origin`, JavaScript 실행 비활성화)
   - 파일명 표시
 
 #### 2. 슬래시 메뉴
@@ -363,9 +363,11 @@ HTML 파일(`.html`, `.htm`)을 에디터에 드래그 앤 드롭하면 자동�
 ### 특징
 
 - **iframe 기반**: HTML 문서를 독립된 iframe에서 안전하게 렌더링
-- **Sandbox 보안**: `sandbox="allow-scripts allow-same-origin"` 속성으로 보안 강화
+- **Sandbox 보안**: `sandbox="allow-same-origin"` 속성으로 보안 강화 (JavaScript 실행 의도적 비활성화)
 - **접기/펼치기**: 헤더 클릭으로 미리보기 영역 토글
-- **커스텀 높이**: 기본 400px (추후 조절 가능)
+- **드래그 리사이즈**: 하단 핸들을 드래그하여 높이 조절 가능 (100px ~ 1200px)
+- **새 창 열기**: HTML 문서를 새 창에서 전체 화면으로 확인
+- **다운로드**: HTML 파일로 다운로드
 - **편집 불가**: 순수 미리보기 전용
 
 ### 사용 예제
@@ -408,9 +410,10 @@ editor.insertBlocks([
 
 ### 주의사항
 
-- HTML 내용은 iframe의 `sandbox` 속성으로 보안이 강화되어 있습니다
+- HTML 내용은 iframe의 `sandbox="allow-same-origin"` 속성으로 보안이 강화되어 있습니다
+- **JavaScript는 의도적으로 비활성화**되어 있습니다 (보안상 이유)
 - 외부 리소스(CSS, JS, 이미지 등)는 상대 경로가 작동하지 않을 수 있습니다
-- 인라인 스타일과 스크립트를 권장합니다
+- 인라인 CSS 스타일을 권장합니다
 
 ---
 
@@ -418,15 +421,16 @@ editor.insertBlocks([
 
 ### 핵심 Props
 
-| Prop              | 타입                              | 기본값      | 설명               |
-| ----------------- | --------------------------------- | ----------- | ------------------ |
-| `s3Upload`        | `S3UploaderConfig`                | `undefined` | S3 업로드 설정     |
-| `uploadFile`      | `(file: File) => Promise<string>` | `undefined` | 커스텀 업로드 함수 |
-| `onContentChange` | `(blocks) => void`                | `undefined` | 콘텐츠 변경 콜백   |
-| `initialContent`  | `Block[] \| string`               | `undefined` | 초기 콘텐츠        |
-| `editable`        | `boolean`                         | `true`      | 편집 가능 여부     |
-| `theme`           | `"light" \| "dark"`               | `"light"`   | 테마               |
-| `className`       | `string`                          | `""`        | CSS 클래스         |
+| Prop              | 타입                                  | 기본값      | 설명                    |
+| ----------------- | ------------------------------------- | ----------- | ----------------------- |
+| `s3Upload`        | `S3UploaderConfig`                    | `undefined` | S3 업로드 설정          |
+| `uploadFile`      | `(file: File) => Promise<string>`     | `undefined` | 커스텀 업로드 함수      |
+| `onContentChange` | `(blocks) => void`                    | `undefined` | 콘텐츠 변경 콜백        |
+| `onError`         | `(error: LumirEditorError) => void`   | `undefined` | 에러 발생 시 콜백       |
+| `initialContent`  | `Block[] \| string`                   | `undefined` | 초기 콘텐츠             |
+| `editable`        | `boolean`                             | `true`      | 편집 가능 여부          |
+| `theme`           | `"light" \| "dark"`                   | `"light"`   | 테마                    |
+| `className`       | `string`                              | `""`        | CSS 클래스              |
 
 ### S3UploaderConfig
 
@@ -467,6 +471,7 @@ interface LumirEditorProps {
   // === 콜백 ===
   onContentChange?: (blocks: DefaultPartialBlock[]) => void; // 콘텐츠 변경 시 호출
   onSelectionChange?: () => void; // 선택 영역 변경 시 호출
+  onError?: (error: LumirEditorError) => void; // 에러 발생 시 호출
 
   // 기능 설정
   tables?: TableConfig; // 테이블 기능 설정 (splitCells, cellBackgroundColor 등)
@@ -695,6 +700,23 @@ const url = await uploader(imageFile);
 ---
 
 ## 변경 로그
+
+### v0.4.2
+
+- **코드 구조 리팩토링**
+  - FloatingMenu 컴포넌트 분리 (Icons, 개별 버튼 컴포넌트)
+  - 색상 상수 별도 파일로 분리 (`constants/colors.ts`)
+  - 미사용 기능 제거 (FontSelect, FontSizeControl)
+- **에러 처리 개선**
+  - `LumirEditorError` 커스텀 에러 클래스 추가
+  - `onError` 콜백 prop 추가 - 에러 발생 시 사용자 정의 핸들링 가능
+  - 에러 발생 시 사용자 친화적 토스트 메시지 자동 표시
+- **HTML 미리보기 개선**
+  - sandbox 설정 명확화 (JavaScript 의도적 비활성화)
+  - 드래그 리사이즈, 새 창 열기, 다운로드 기능 문서화
+- **타입 개선**
+  - `LumirErrorCode`, `LumirErrorDetails` 타입 export
+  - `ColorItem` 타입 export
 
 ### v0.4.1
 

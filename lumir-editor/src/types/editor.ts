@@ -5,6 +5,7 @@ import type {
   DefaultInlineContentSchema,
   DefaultStyleSchema,
 } from "@blocknote/core";
+import type { LumirEditorError } from "../errors/LumirEditorError";
 
 /**
  * LumirEditor에서 사용하는 BlockNote 에디터 타입
@@ -88,4 +89,6 @@ export interface LumirEditorProps {
 
   // Callbacks / refs
   onContentChange?: (content: DefaultPartialBlock[]) => void;
+  /** 에러 발생 시 호출되는 콜백 */
+  onError?: (error: LumirEditorError) => void;
 }
