@@ -10,6 +10,47 @@ export interface S3UploaderConfig {
   preserveExtension?: boolean;
 }
 
+/**
+ * 🔒 보안: S3 URL 검증
+ * HTTPS 프로토콜 강제 및 URL 형식 검증
+ */
+function validateS3Url(url: unknown, fieldName: string): string {
+  // 타입 검증
+  if (typeof url !== "string" || !url || url.trim() === "") {
+    throw new Error(
+      `${fieldName} is required and must be a non-empty string`
+    );
+  }
+
+  // HTTPS 프로토콜 강제 (SSRF 방지)
+  if (!url.startsWith("https://")) {
+    throw new Error(`${fieldName} must use HTTPS protocol`);
+  }
+
+  // URL 형식 검증
+  try {
+    const urlObj = new URL(url);
+    // 추가 검증: localhost, private IP 차단
+    const hostname = urlObj.hostname.toLowerCase();
+    if (
+      hostname === "localhost" ||
+      hostname.startsWith("127.") ||
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("10.") ||
+      hostname === "169.254.169.254" // AWS 메타데이터 서버
+    ) {
+      throw new Error(`${fieldName} cannot point to internal/private networks`);
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("cannot point to")) {
+      throw error;
+    }
+    throw new Error(`${fieldName} is not a valid URL format`);
+  }
+
+  return url;
+}
+
 // UUID 생성 함수 (crypto.randomUUID 또는 폴백)
 const generateUUID = (): string => {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -120,8 +161,12 @@ export const createS3Uploader = (config: S3UploaderConfig) => {
       const responseData = await response.json();
       const { presignedUrl, publicUrl } = responseData;
 
+      // 🔒 보안: S3 URL 검증 (SSRF 방지)
+      const validatedPresignedUrl = validateS3Url(presignedUrl, "presignedUrl");
+      const validatedPublicUrl = validateS3Url(publicUrl, "publicUrl");
+
       // 3. S3에 업로드
-      const uploadResponse = await fetch(presignedUrl, {
+      const uploadResponse = await fetch(validatedPresignedUrl, {
         method: "PUT",
         headers: {
           "Content-Type": file.type || "application/octet-stream",
@@ -134,7 +179,7 @@ export const createS3Uploader = (config: S3UploaderConfig) => {
       }
 
       // 4. 공개 URL 반환
-      return publicUrl;
+      return validatedPublicUrl;
     } catch (error) {
       console.error("S3 upload failed:", error);
       throw error;
