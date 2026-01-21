@@ -18,6 +18,7 @@ import { createS3Uploader } from "../utils/s3-uploader";
 import { schema } from "../blocks/HtmlPreview";
 import { FloatingMenu } from "./FloatingMenu";
 import { LumirEditorError } from "../errors/LumirEditorError";
+import { MAX_FILE_SIZE, BLOCKED_EXTENSIONS } from "../constants/limits";
 
 // ==========================================
 // 유틸리티 클래스들
@@ -177,10 +178,24 @@ export class EditorConfig {
 
 // 파일 타입 검증 함수
 const isImageFile = (file: File): boolean => {
+  // 🔒 보안: 파일 크기 제한 (10MB)
+  if (file.size === 0 || file.size > MAX_FILE_SIZE) {
+    return false;
+  }
+
+  // 🔒 보안: SVG 파일 차단 (XSS 방지)
+  const fileName = file.name?.toLowerCase() || "";
+  if (
+    file.type === "image/svg+xml" ||
+    BLOCKED_EXTENSIONS.some((ext) => fileName.endsWith(ext))
+  ) {
+    return false;
+  }
+
+  // 이미지 타입 검증
   return (
-    file.size > 0 &&
-    (file.type?.startsWith("image/") ||
-      (!file.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(file.name || "")))
+    file.type?.startsWith("image/") ||
+    (!file.type && /\.(png|jpe?g|gif|webp|bmp)$/i.test(fileName))
   );
 };
 

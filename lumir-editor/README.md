@@ -392,7 +392,11 @@ function Editor() {
 
 ### S3 삭제 API 예시
 
-**Next.js API Route** (`app/api/s3/delete/route.ts`):
+> **참고**: `onImageDelete`는 **프레임워크 독립적**입니다. 아래는 각 환경별 구현 예시입니다.
+
+#### Next.js API Route
+
+**파일**: `app/api/s3/delete/route.ts`
 
 ```typescript
 import { NextRequest, NextResponse } from "next/server";
@@ -431,6 +435,73 @@ function extractKeyFromUrl(url: string): string {
   const urlObj = new URL(url);
   return decodeURIComponent(urlObj.pathname.slice(1));
 }
+```
+
+**클라이언트 구현**:
+
+```tsx
+const handleImageDelete = (imageUrl: string) => {
+  fetch(`/api/s3/delete?url=${encodeURIComponent(imageUrl)}`, {
+    method: "DELETE",
+  });
+};
+
+<LumirEditor onImageDelete={handleImageDelete} />
+```
+
+#### React + Express
+
+**서버** (`server.js`):
+
+```javascript
+app.delete('/api/images', async (req, res) => {
+  const { imageUrl } = req.body;
+  const key = extractKeyFromS3Url(imageUrl);
+  
+  await s3Client.send(new DeleteObjectCommand({
+    Bucket: process.env.S3_BUCKET,
+    Key: key
+  }));
+  
+  res.json({ success: true });
+});
+```
+
+**클라이언트**:
+
+```tsx
+const handleImageDelete = async (imageUrl: string) => {
+  await fetch('https://api.myapp.com/api/images', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageUrl })
+  });
+};
+
+<LumirEditor onImageDelete={handleImageDelete} />
+```
+
+#### React Native + Firebase Storage
+
+```tsx
+import storage from '@react-native-firebase/storage';
+
+const handleImageDelete = async (imageUrl: string) => {
+  const ref = storage().refFromURL(imageUrl);
+  await ref.delete();
+};
+
+<LumirEditor onImageDelete={handleImageDelete} />
+```
+
+#### Vue + Axios + FastAPI
+
+```typescript
+const handleImageDelete = async (imageUrl: string) => {
+  await axios.delete('https://api.myapp.com/v1/images', {
+    data: { imageUrl }
+  });
+};
 ```
 
 ### 주의사항
