@@ -177,7 +177,8 @@ export class EditorConfig {
 }
 
 // 파일 타입 검증 함수
-const isImageFile = (file: File): boolean => {
+/** @internal 테스트용 export */
+export const isImageFile = (file: File): boolean => {
   // 🔒 보안: 파일 크기 제한 (10MB)
   if (file.size === 0 || file.size > MAX_FILE_SIZE) {
     return false;
@@ -199,7 +200,8 @@ const isImageFile = (file: File): boolean => {
   );
 };
 
-const isHtmlFile = (file: File): boolean => {
+/** @internal 테스트용 export */
+export const isHtmlFile = (file: File): boolean => {
   return (
     file.size > 0 &&
     (file.type === "text/html" ||
@@ -215,8 +217,9 @@ const isHtmlFile = (file: File): boolean => {
 /**
  * HTML 특수문자 이스케이프 (XSS 방지)
  * URL이나 사용자 입력을 HTML에 삽입할 때 사용
+ * @internal 테스트용 export
  */
-const escapeHtml = (str: string): string => {
+export const escapeHtml = (str: string): string => {
   const htmlEscapes: Record<string, string> = {
     "&": "&amp;",
     "<": "&lt;",
@@ -230,8 +233,9 @@ const escapeHtml = (str: string): string => {
 /**
  * 블록 배열에서 모든 이미지 URL 추출
  * (중첩된 children도 재귀적으로 탐색)
+ * @internal 테스트용 export
  */
-const extractImageUrls = (blocks: DefaultPartialBlock[]): Set<string> => {
+export const extractImageUrls = (blocks: DefaultPartialBlock[]): Set<string> => {
   const urls = new Set<string>();
 
   const traverse = (blockList: DefaultPartialBlock[]) => {
@@ -257,8 +261,9 @@ const extractImageUrls = (blocks: DefaultPartialBlock[]): Set<string> => {
 /**
  * 삭제된 이미지 URL 찾기
  * (이전 블록에는 있었지만 현재 블록에는 없는 URL)
+ * @internal 테스트용 export
  */
-const findDeletedImageUrls = (
+export const findDeletedImageUrls = (
   previousUrls: Set<string>,
   currentUrls: Set<string>
 ): string[] => {

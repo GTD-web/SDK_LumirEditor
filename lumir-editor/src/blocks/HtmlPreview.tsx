@@ -15,8 +15,10 @@ export interface HtmlPreviewProps {
 }
 
 // 최소/최대 높이 상수
-const MIN_HEIGHT = 100;
-const MAX_HEIGHT = 1200;
+/** @internal 테스트용 export */
+export const MIN_HEIGHT = 100;
+/** @internal 테스트용 export */
+export const MAX_HEIGHT = 1200;
 
 // ============================================
 // 보안 유틸리티 함수
@@ -25,8 +27,9 @@ const MAX_HEIGHT = 1200;
 /**
  * HTML에 charset이 없으면 UTF-8 meta 태그 추가
  * (원본 HTML을 최소한으로만 수정하여 인코딩 깨짐 방지)
+ * @internal 테스트용 export
  */
-const ensureCharset = (html: string): string => {
+export const ensureCharset = (html: string): string => {
   // 이미 charset이 있으면 원본 그대로 반환
   const hasCharset = /<meta[^>]+charset\s*=/i.test(html);
   if (hasCharset) {
@@ -58,8 +61,9 @@ ${html}
 
 /**
  * 파일명 새니타이제이션 (경로 조작 방지)
+ * @internal 테스트용 export
  */
-const sanitizeFileName = (fileName: string): string => {
+export const sanitizeFileName = (fileName: string): string => {
   if (!fileName || typeof fileName !== "string") {
     return `document_${Date.now()}.html`;
   }
@@ -77,8 +81,9 @@ const sanitizeFileName = (fileName: string): string => {
 
 /**
  * Blob URL 생성 (UTF-8 인코딩 명시)
+ * @internal 테스트용 export
  */
-const createSecureBlobUrl = (htmlContent: string): string => {
+export const createSecureBlobUrl = (htmlContent: string): string => {
   const htmlWithCharset = ensureCharset(htmlContent);
 
   // UTF-8 인코딩 명시

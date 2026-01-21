@@ -50,6 +50,10 @@
     "build": "tsup src/index.ts --dts --format cjs,esm --sourcemap && node scripts/copy-style.js",
     "dev": "tsup src/index.ts --dts --format cjs,esm --sourcemap --watch --onSuccess \"node scripts/copy-style.js\"",
     "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
     "prepublishOnly": "npm run type-check && npm run build"
   },
   "peerDependencies": {
@@ -67,7 +71,15 @@
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "vitest": "^3.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "@vitest/ui": "^3.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "jsdom": "^26.0.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/user-event": "^14.0.0"
   },
   "sideEffects": [
     "**/*.css"
