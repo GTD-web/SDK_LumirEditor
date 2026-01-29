@@ -51,7 +51,14 @@ var generateUUID = () => {
   });
 };
 var createS3Uploader = (config) => {
-  const { apiEndpoint, env, path, fileNameTransform, appendUUID } = config;
+  const {
+    apiEndpoint,
+    env,
+    path,
+    fileNameTransform,
+    appendUUID,
+    preserveExtension = true
+  } = config;
   if (!apiEndpoint || apiEndpoint.trim() === "") {
     throw new Error(
       "apiEndpoint is required for S3 upload. Please provide a valid API endpoint."
@@ -73,12 +80,19 @@ var createS3Uploader = (config) => {
     return `${name}_${generateUUID()}${ext}`;
   };
   const generateHierarchicalFileName = (file) => {
-    let filename = file.name;
+    const originalName = file.name;
+    const lastDotIndex = originalName.lastIndexOf(".");
+    const nameWithoutExt = lastDotIndex === -1 ? originalName : originalName.substring(0, lastDotIndex);
+    const extension = lastDotIndex === -1 ? "" : originalName.substring(lastDotIndex);
+    let filename = nameWithoutExt;
     if (fileNameTransform) {
       filename = fileNameTransform(filename, file);
     }
     if (appendUUID) {
-      filename = appendUUIDToFileName(filename);
+      filename = `${filename}_${generateUUID()}`;
+    }
+    if (preserveExtension) {
+      filename = `${filename}${extension}`;
     }
     return `${env}/${path}/${filename}`;
   };
@@ -306,6 +320,7 @@ function LumirEditor({
       env: s3Upload.env,
       path: s3Upload.path,
       appendUUID: s3Upload.appendUUID,
+      preserveExtension: s3Upload.preserveExtension,
       // 최신 콜백을 항상 사용하도록 ref를 통해 접근
       fileNameTransform: (originalName, file) => {
         return fileNameTransformRef.current ? fileNameTransformRef.current(originalName, file) : originalName;
@@ -315,7 +330,8 @@ function LumirEditor({
     s3Upload?.apiEndpoint,
     s3Upload?.env,
     s3Upload?.path,
-    s3Upload?.appendUUID
+    s3Upload?.appendUUID,
+    s3Upload?.preserveExtension
   ]);
   const editor = (0, import_react2.useCreateBlockNote)(
     {
@@ -502,9 +518,12 @@ function LumirEditor({
                       const filtered = items.filter((item) => {
                         const key = (item?.key || "").toString().toLowerCase();
                         const title = (item?.title || "").toString().toLowerCase();
-                        if (["video", "audio", "file"].includes(key)) return false;
-                        if (title.includes("video") || title.includes("audio") || title.includes("file"))
+                        if (disabledExtensions.includes(key)) return false;
+                        if (disabledExtensions.some(
+                          (ext) => title.includes(ext.toLowerCase())
+                        )) {
                           return false;
+                        }
                         return true;
                       });
                       if (!query) return filtered;
@@ -515,7 +534,7 @@ function LumirEditor({
                         )
                       );
                     },
-                    [editor]
+                    [editor, disabledExtensions]
                   )
                 }
               ),

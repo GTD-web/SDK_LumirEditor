@@ -87,7 +87,7 @@ export class ContentUtils {
    */
   static validateContent(
     content?: DefaultPartialBlock[] | string,
-    emptyBlockCount: number = 3
+    emptyBlockCount: number = 3,
   ): DefaultPartialBlock[] {
     // 1. 문자열인 경우 JSON 파싱 시도
     if (typeof content === "string") {
@@ -118,10 +118,10 @@ export class ContentUtils {
    * @returns 생성된 빈 블록 배열
    */
   private static createEmptyBlocks(
-    emptyBlockCount: number
+    emptyBlockCount: number,
   ): DefaultPartialBlock[] {
     return Array.from({ length: emptyBlockCount }, () =>
-      this.createDefaultBlock()
+      this.createDefaultBlock(),
     );
   }
 }
@@ -168,7 +168,7 @@ export class EditorConfig {
     userExtensions?: string[],
     allowVideo = false,
     allowAudio = false,
-    allowFile = false
+    allowFile = false,
   ): string[] {
     const set = new Set<string>(userExtensions ?? []);
     if (!allowVideo) set.add("video");
@@ -244,7 +244,7 @@ export default function LumirEditor({
       disableExtensions,
       allowVideoUpload,
       allowAudioUpload,
-      allowFileUpload
+      allowFileUpload,
     );
   }, [disableExtensions, allowVideoUpload, allowAudioUpload, allowFileUpload]);
 
@@ -323,7 +323,7 @@ export default function LumirEditor({
           console.error("Image upload failed:", error);
           throw new Error(
             "Upload failed: " +
-              (error instanceof Error ? error.message : String(error))
+              (error instanceof Error ? error.message : String(error)),
           );
         }
       },
@@ -359,7 +359,7 @@ export default function LumirEditor({
                 console.warn(
                   "Image upload failed, skipped:",
                   file.name || "",
-                  err
+                  err,
                 );
               }
             }
@@ -380,7 +380,7 @@ export default function LumirEditor({
       trailingBlock,
       uploadFile,
       memoizedS3Upload,
-    ]
+    ],
   );
 
   // 편집 가능 여부 설정
@@ -457,7 +457,7 @@ export default function LumirEditor({
               console.warn(
                 "Image upload failed, skipped:",
                 file.name || "",
-                err
+                err,
               );
             }
           }
@@ -516,18 +516,24 @@ export default function LumirEditor({
             getItems={useCallback(
               async (query: string) => {
                 const items = getDefaultReactSlashMenuItems(editor);
-                // 비디오, 오디오, 파일 관련 항목 제거
+
+                // disableExtensions에 포함된 항목 제거
                 const filtered = items.filter((item: any) => {
                   const key = (item?.key || "").toString().toLowerCase();
                   const title = (item?.title || "").toString().toLowerCase();
-                  // 비디오, 오디오, 파일 관련 항목 제거
-                  if (["video", "audio", "file"].includes(key)) return false;
+
+                  // disableExtensions 배열에 있는 항목 제거
+                  if (disabledExtensions.includes(key)) return false;
+
+                  // title에 비활성화된 확장 이름이 포함되어 있으면 제거
                   if (
-                    title.includes("video") ||
-                    title.includes("audio") ||
-                    title.includes("file")
-                  )
+                    disabledExtensions.some((ext) =>
+                      title.includes(ext.toLowerCase()),
+                    )
+                  ) {
                     return false;
+                  }
+
                   return true;
                 });
 
@@ -537,11 +543,11 @@ export default function LumirEditor({
                   (item: any) =>
                     item.title?.toLowerCase().includes(q) ||
                     (item.aliases || []).some((a: string) =>
-                      a.toLowerCase().includes(q)
-                    )
+                      a.toLowerCase().includes(q),
+                    ),
                 );
               },
-              [editor]
+              [editor, disabledExtensions],
             )}
           />
         }

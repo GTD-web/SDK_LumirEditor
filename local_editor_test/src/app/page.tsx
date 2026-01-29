@@ -8,7 +8,7 @@ import type { DefaultPartialBlock } from "@lumir-company/editor";
 const LumirEditor = dynamic(
   () =>
     import("@lumir-company/editor").then((m) => ({ default: m.LumirEditor })),
-  { ssr: false }
+  { ssr: false },
 );
 
 export default function Home() {
@@ -42,6 +42,7 @@ export default function Home() {
               },
               appendUUID: true,
             }}
+            disableExtensions={["image"]}
             onContentChange={setContent}
             className="h-full"
             initialContent="이미지를 업로드해보세요! 🚀"

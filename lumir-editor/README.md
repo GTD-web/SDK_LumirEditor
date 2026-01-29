@@ -88,7 +88,7 @@ import "@lumir-company/editor/style.css";
 const LumirEditor = dynamic(
   () =>
     import("@lumir-company/editor").then((m) => ({ default: m.LumirEditor })),
-  { ssr: false }
+  { ssr: false },
 );
 
 export default function EditorPage() {
@@ -359,55 +359,718 @@ interface S3UploaderConfig {
 }
 ```
 
-### 전체 Props
+---
 
-<details>
-<summary>전체 Props 보기</summary>
+## 📋 전체 Props 빠른 참조표
+
+> 💡 **빠른 참조**: 아래 표에서 원하는 prop을 찾고, 상세 내용은 하단의 "📚 전체 Props 상세 매뉴얼"을 참고하세요.
+
+### 🔧 에디터 설정
+
+| Prop                 | 타입                                      | 기본값                 | 설명                                |
+| -------------------- | ----------------------------------------- | ---------------------- | ----------------------------------- |
+| `initialContent`     | `DefaultPartialBlock[] \| string`         | `undefined`            | 초기 콘텐츠 (블록 배열/JSON/텍스트) |
+| `initialEmptyBlocks` | `number`                                  | `3`                    | 빈 콘텐츠일 때 생성할 빈 블록 개수  |
+| `defaultStyles`      | `boolean`                                 | `true`                 | BlockNote 기본 스타일 적용 여부     |
+| `tabBehavior`        | `"prefer-navigate-ui" \| "prefer-indent"` | `"prefer-navigate-ui"` | Tab 키 동작 (UI 탐색 또는 들여쓰기) |
+| `trailingBlock`      | `boolean`                                 | `true`                 | 문서 끝에 빈 블록 자동 추가         |
+
+### 📤 파일 업로드
+
+| Prop                         | 타입                                   | 기본값      | 설명                         |
+| ---------------------------- | -------------------------------------- | ----------- | ---------------------------- |
+| `uploadFile`                 | `(file: File) => Promise<string>`      | `undefined` | 커스텀 파일 업로드 함수      |
+| `s3Upload`                   | `S3UploadConfig`                       | `undefined` | AWS S3 업로드 설정 객체      |
+| `s3Upload.apiEndpoint`       | `string`                               | -           | Presigned URL API 엔드포인트 |
+| `s3Upload.env`               | `"development" \| "production"`        | -           | 환경 설정                    |
+| `s3Upload.path`              | `string`                               | -           | S3 버킷 내 경로              |
+| `s3Upload.fileNameTransform` | `(name: string, file: File) => string` | `undefined` | 파일명 변환 함수             |
+| `s3Upload.appendUUID`        | `boolean`                              | `false`     | UUID 자동 추가 여부          |
+| `s3Upload.preserveExtension` | `boolean`                              | `true`      | 확장자 보존 여부             |
+| `allowVideoUpload`           | `boolean`                              | `false`     | 비디오 업로드 허용           |
+| `allowAudioUpload`           | `boolean`                              | `false`     | 오디오 업로드 허용           |
+| `allowFileUpload`            | `boolean`                              | `false`     | 일반 파일 업로드 허용        |
+
+### 🧩 블록 기능
+
+| Prop                         | 타입                                | 기본값          | 설명                       |
+| ---------------------------- | ----------------------------------- | --------------- | -------------------------- |
+| `tables`                     | `TableConfig`                       | 모두 `true`     | 테이블 블록 세부 기능 설정 |
+| `tables.splitCells`          | `boolean`                           | `true`          | 셀 분할/병합 기능          |
+| `tables.cellBackgroundColor` | `boolean`                           | `true`          | 셀 배경색 변경             |
+| `tables.cellTextColor`       | `boolean`                           | `true`          | 셀 텍스트 색상 변경        |
+| `tables.headers`             | `boolean`                           | `true`          | 헤더 행/열 기능            |
+| `heading`                    | `{ levels?: (1\|2\|3\|4\|5\|6)[] }` | `[1,2,3,4,5,6]` | 사용 가능한 헤딩 레벨      |
+| `disableExtensions`          | `string[]`                          | `[]`            | 비활성화할 블록 타입 목록  |
+
+**비활성화 가능한 블록 타입**: `"image"`, `"video"`, `"audio"`, `"file"`, `"table"`, `"heading"`, `"numberedList"`, `"bulletList"`, `"checkList"`, `"codeBlock"`
+
+### 🎨 UI 표시 설정
+
+| Prop                | 타입                               | 기본값    | 설명                            |
+| ------------------- | ---------------------------------- | --------- | ------------------------------- |
+| `editable`          | `boolean`                          | `true`    | 편집 가능 여부                  |
+| `theme`             | `"light" \| "dark" \| ThemeObject` | `"light"` | 에디터 테마                     |
+| `formattingToolbar` | `boolean`                          | `true`    | 서식 툴바 표시 (텍스트 선택 시) |
+| `linkToolbar`       | `boolean`                          | `true`    | 링크 툴바 표시 (링크 클릭 시)   |
+| `sideMenu`          | `boolean`                          | `true`    | 사이드 메뉴 표시 (드래그 핸들)  |
+| `sideMenuAddButton` | `boolean`                          | `false`   | 사이드 메뉴 + 버튼 표시         |
+| `emojiPicker`       | `boolean`                          | `true`    | 이모지 선택기 표시              |
+| `filePanel`         | `boolean`                          | `true`    | 파일 패널 표시 (미디어 옵션)    |
+| `tableHandles`      | `boolean`                          | `true`    | 테이블 핸들 표시 (행/열 추가)   |
+| `className`         | `string`                           | `""`      | 컨테이너 CSS 클래스             |
+
+### 🔔 콜백 함수
+
+| Prop                | 타입                                      | 기본값      | 설명                   |
+| ------------------- | ----------------------------------------- | ----------- | ---------------------- |
+| `onContentChange`   | `(blocks: DefaultPartialBlock[]) => void` | `undefined` | 콘텐츠 변경 시 호출    |
+| `onSelectionChange` | `() => void`                              | `undefined` | 선택 영역 변경 시 호출 |
+
+### 📊 Props 개수 요약
+
+- **총 Props**: 26개
+- **에디터 설정**: 5개
+- **파일 업로드**: 11개 (s3Upload 하위 포함)
+- **블록 기능**: 7개 (tables 하위 포함)
+- **UI 설정**: 10개
+- **콜백 함수**: 2개
+
+---
+
+### 📚 전체 Props 상세 매뉴얼
+
+<details open>
+<summary><strong>Props 전체 목록 보기</strong></summary>
+
+## 1️⃣ 초기 콘텐츠 설정
+
+### `initialContent`
+
+- **타입**: `DefaultPartialBlock[] | string`
+- **기본값**: `undefined` (빈 블록 자동 생성)
+- **설명**: 에디터의 초기 콘텐츠를 설정합니다.
+
+**사용 가능한 형식**:
+
+1. **블록 배열** (권장)
 
 ```tsx
-interface LumirEditorProps {
-  // === 에디터 설정 ===
-  initialContent?: DefaultPartialBlock[] | string; // 초기 콘텐츠 (블록 배열 또는 JSON 문자열)
-  initialEmptyBlocks?: number; // 초기 빈 블록 개수 (기본: 3)
-  uploadFile?: (file: File) => Promise<string>; // 커스텀 파일 업로드 함수
-  s3Upload?: {
-    apiEndpoint: string;
-    env: "development" | "production";
-    path: string;
-    fileNameTransform?: (nameWithoutExt: string, file: File) => string; // 확장자 제외한 이름 변환
-    appendUUID?: boolean; // UUID 자동 추가 (확장자 앞)
-    preserveExtension?: boolean; // 확장자 자동 붙이기 (기본: true)
-  };
+const blocks: DefaultPartialBlock[] = [
+  {
+    type: "paragraph",
+    props: {
+      textColor: "default",
+      backgroundColor: "default",
+      textAlignment: "left",
+    },
+    content: [{ type: "text", text: "안녕하세요!", styles: {} }],
+    children: [],
+  },
+  {
+    type: "heading",
+    props: { level: 1, textAlignment: "left" },
+    content: [{ type: "text", text: "제목", styles: { bold: true } }],
+  },
+];
 
-  // === 콜백 ===
-  onContentChange?: (blocks: DefaultPartialBlock[]) => void; // 콘텐츠 변경 시 호출
-  onSelectionChange?: () => void; // 선택 영역 변경 시 호출
+<LumirEditor initialContent={blocks} />;
+```
 
-  // 기능 설정
-  tables?: TableConfig; // 테이블 기능 설정 (splitCells, cellBackgroundColor 등)
-  heading?: { levels?: (1 | 2 | 3 | 4 | 5 | 6)[] }; // 헤딩 레벨 설정 (기본: [1,2,3,4,5,6])
-  defaultStyles?: boolean; // 기본 스타일 활성화 (기본: true)
-  disableExtensions?: string[]; // 비활성화할 확장 기능 목록
-  tabBehavior?: "prefer-navigate-ui" | "prefer-indent"; // 탭 키 동작 (기본: "prefer-navigate-ui")
-  trailingBlock?: boolean; // 마지막에 빈 블록 자동 추가 (기본: true)
+2. **JSON 문자열**
 
-  // === UI 설정 ===
-  editable?: boolean; // 편집 가능 여부 (기본: true)
-  theme?: "light" | "dark" | ThemeObject; // 에디터 테마 (기본: "light")
-  formattingToolbar?: boolean; // 서식 툴바 표시 (기본: true)
-  linkToolbar?: boolean; // 링크 툴바 표시 (기본: true)
-  sideMenu?: boolean; // 사이드 메뉴 표시 (기본: true)
-  sideMenuAddButton?: boolean; // 사이드 메뉴 + 버튼 표시 (기본: false, 드래그 핸들만 표시)
-  emojiPicker?: boolean; // 이모지 선택기 표시 (기본: true)
-  filePanel?: boolean; // 파일 패널 표시 (기본: true)
-  tableHandles?: boolean; // 테이블 핸들 표시 (기본: true)
-  className?: string; // 컨테이너 CSS 클래스
+```tsx
+const jsonContent = JSON.stringify([
+  { type: "paragraph", content: [{ type: "text", text: "Hello" }] },
+]);
 
-  // 미디어 업로드 허용 여부 (기본: 모두 비활성)
-  allowVideoUpload?: boolean; // 비디오 업로드 허용 (기본: false)
-  allowAudioUpload?: boolean; // 오디오 업로드 허용 (기본: false)
-  allowFileUpload?: boolean; // 일반 파일 업로드 허용 (기본: false)
+<LumirEditor initialContent={jsonContent} />;
+```
+
+3. **단순 텍스트** (자동으로 paragraph 블록 생성)
+
+```tsx
+<LumirEditor initialContent="환영합니다!" />
+```
+
+---
+
+### `initialEmptyBlocks`
+
+- **타입**: `number`
+- **기본값**: `3`
+- **설명**: `initialContent`가 없을 때 생성할 빈 블록의 개수
+
+```tsx
+// 5개의 빈 블록으로 시작
+<LumirEditor initialEmptyBlocks={5} />
+
+// 빈 블록 없이 시작 (첫 입력 시 자동 생성)
+<LumirEditor initialEmptyBlocks={0} />
+```
+
+---
+
+## 2️⃣ 파일 업로드 설정
+
+### `uploadFile`
+
+- **타입**: `(file: File) => Promise<string>`
+- **기본값**: `undefined`
+- **설명**: 커스텀 파일 업로드 함수. URL을 반환해야 합니다.
+
+```tsx
+const customUpload = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  const { url } = await response.json();
+  return url; // 업로드된 파일의 공개 URL 반환
+};
+
+<LumirEditor uploadFile={customUpload} />;
+```
+
+---
+
+### `s3Upload`
+
+- **타입**: `S3UploadConfig`
+- **기본값**: `undefined`
+- **설명**: AWS S3 업로드 설정
+
+**전체 구조**:
+
+```tsx
+interface S3UploadConfig {
+  apiEndpoint: string; // Presigned URL API 엔드포인트
+  env: "development" | "production"; // 환경 설정
+  path: string; // S3 버킷 내 경로
+  fileNameTransform?: (
+    // 파일명 변환 함수
+    nameWithoutExt: string, // 확장자 제외한 파일명
+    file: File, // 원본 파일 객체
+  ) => string;
+  appendUUID?: boolean; // UUID 자동 추가 여부
+  preserveExtension?: boolean; // 확장자 보존 여부
 }
+```
+
+**사용 예시**:
+
+**기본 사용**:
+
+```tsx
+<LumirEditor
+  s3Upload={{
+    apiEndpoint: "/api/s3/presigned",
+    env: "production",
+    path: "uploads/images",
+  }}
+/>
+```
+
+**파일명 커스터마이징**:
+
+```tsx
+const [username, setUsername] = useState("user123");
+
+<LumirEditor
+  s3Upload={{
+    apiEndpoint: "/api/s3/presigned",
+    env: "development",
+    path: "user-uploads",
+    // 파일명 변환: user123_image_abc.png
+    fileNameTransform: (nameWithoutExt, file) => {
+      return `${username}_${nameWithoutExt}`;
+    },
+    appendUUID: true, // UUID 추가
+    preserveExtension: true, // 확장자 보존
+  }}
+/>;
+```
+
+**파일명 변환 예시**:
+| 원본 파일 | fileNameTransform | appendUUID | 최종 파일명 |
+|-----------|-------------------|------------|-------------|
+| `photo.jpg` | `(name) => "product_" + name` | `false` | `product_photo.jpg` |
+| `photo.jpg` | `(name) => "product_" + name` | `true` | `product_photo_abc123.jpg` |
+| `photo.jpg` | `(name) => Date.now()` | `true` | `1704012345_xyz789.jpg` |
+
+---
+
+## 3️⃣ 미디어 업로드 허용 설정
+
+### `allowVideoUpload`
+
+- **타입**: `boolean`
+- **기본값**: `false`
+- **설명**: 비디오 파일 업로드 허용
+
+```tsx
+<LumirEditor
+  allowVideoUpload={true}
+  uploadFile={customUpload} // 또는 s3Upload
+/>
+```
+
+### `allowAudioUpload`
+
+- **타입**: `boolean`
+- **기본값**: `false`
+- **설명**: 오디오 파일 업로드 허용
+
+```tsx
+<LumirEditor allowAudioUpload={true} uploadFile={customUpload} />
+```
+
+### `allowFileUpload`
+
+- **타입**: `boolean`
+- **기본값**: `false`
+- **설명**: 일반 파일 업로드 허용
+
+```tsx
+<LumirEditor allowFileUpload={true} uploadFile={customUpload} />
+```
+
+⚠️ **주의**: 이미지는 기본적으로 허용됩니다. 이미지를 비활성화하려면 `disableExtensions={["image"]}`를 사용하세요.
+
+---
+
+## 4️⃣ 블록 기능 설정
+
+### `tables`
+
+- **타입**: `TableConfig`
+- **기본값**: 모든 기능 활성화
+- **설명**: 테이블 블록의 기능을 세부 제어
+
+```tsx
+interface TableConfig {
+  splitCells?: boolean; // 셀 분할/병합 기능
+  cellBackgroundColor?: boolean; // 셀 배경색 변경
+  cellTextColor?: boolean; // 셀 텍스트 색상 변경
+  headers?: boolean; // 헤더 행/열 기능
+}
+```
+
+**사용 예시**:
+
+```tsx
+// 모든 테이블 기능 활성화 (기본값)
+<LumirEditor
+  tables={{
+    splitCells: true,
+    cellBackgroundColor: true,
+    cellTextColor: true,
+    headers: true,
+  }}
+/>
+
+// 간단한 테이블만 허용 (셀 병합 비활성화)
+<LumirEditor
+  tables={{
+    splitCells: false,
+    cellBackgroundColor: false,
+    cellTextColor: false,
+    headers: true,
+  }}
+/>
+```
+
+---
+
+### `heading`
+
+- **타입**: `{ levels?: (1 | 2 | 3 | 4 | 5 | 6)[] }`
+- **기본값**: `{ levels: [1, 2, 3, 4, 5, 6] }`
+- **설명**: 사용 가능한 헤딩 레벨 설정
+
+```tsx
+// H1, H2, H3만 허용
+<LumirEditor
+  heading={{
+    levels: [1, 2, 3]
+  }}
+/>
+
+// H1만 허용
+<LumirEditor
+  heading={{
+    levels: [1]
+  }}
+/>
+```
+
+---
+
+### `disableExtensions`
+
+- **타입**: `string[]`
+- **기본값**: `[]`
+- **설명**: 비활성화할 블록 타입 목록
+
+**비활성화 가능한 블록**:
+
+- `"image"` - 이미지 블록
+- `"video"` - 비디오 블록
+- `"audio"` - 오디오 블록
+- `"file"` - 파일 첨부 블록
+- `"table"` - 테이블 블록
+- `"heading"` - 제목 블록
+- `"numberedList"` - 번호 목록
+- `"bulletList"` - 글머리 기호 목록
+- `"checkList"` - 체크리스트
+- `"codeBlock"` - 코드 블록
+
+```tsx
+// 이미지와 비디오 비활성화
+<LumirEditor
+  disableExtensions={["image", "video"]}
+/>
+
+// 미디어 파일 전체 비활성화
+<LumirEditor
+  disableExtensions={["image", "video", "audio", "file"]}
+/>
+
+// 텍스트만 허용 (모든 미디어와 테이블 비활성화)
+<LumirEditor
+  disableExtensions={["image", "video", "audio", "file", "table"]}
+/>
+```
+
+⚠️ **중요**: `disableExtensions`로 블록을 비활성화하면:
+
+1. 슬래시 메뉴(`/`)에서 해당 항목이 제거됩니다
+2. 드래그 앤 드롭으로 추가할 수 없습니다
+3. 붙여넣기도 작동하지 않습니다
+
+---
+
+### `defaultStyles`
+
+- **타입**: `boolean`
+- **기본값**: `true`
+- **설명**: BlockNote 기본 스타일 적용 여부
+
+```tsx
+// 기본 스타일 비활성화 (완전한 커스텀 스타일링)
+<LumirEditor defaultStyles={false} />
+```
+
+---
+
+### `tabBehavior`
+
+- **타입**: `"prefer-navigate-ui" | "prefer-indent"`
+- **기본값**: `"prefer-navigate-ui"`
+- **설명**: Tab 키 동작 설정
+
+```tsx
+// Tab으로 UI 탐색 (기본)
+<LumirEditor tabBehavior="prefer-navigate-ui" />
+
+// Tab으로 들여쓰기
+<LumirEditor tabBehavior="prefer-indent" />
+```
+
+---
+
+### `trailingBlock`
+
+- **타입**: `boolean`
+- **기본값**: `true`
+- **설명**: 문서 끝에 빈 블록 자동 추가
+
+```tsx
+// 마지막 빈 블록 비활성화
+<LumirEditor trailingBlock={false} />
+```
+
+---
+
+## 5️⃣ UI 설정
+
+### `editable`
+
+- **타입**: `boolean`
+- **기본값**: `true`
+- **설명**: 편집 가능 여부
+
+```tsx
+// 읽기 전용 모드
+<LumirEditor editable={false} initialContent={savedContent} />
+```
+
+---
+
+### `theme`
+
+- **타입**: `"light" | "dark" | ThemeObject`
+- **기본값**: `"light"`
+- **설명**: 에디터 테마 설정
+
+**사용 예시**:
+
+```tsx
+// 라이트 테마
+<LumirEditor theme="light" />
+
+// 다크 테마
+<LumirEditor theme="dark" />
+
+// 커스텀 테마 (고급)
+<LumirEditor
+  theme={{
+    light: {
+      "--bn-colors-editor-background": "#ffffff",
+      "--bn-colors-editor-text": "#000000",
+    },
+    dark: {
+      "--bn-colors-editor-background": "#1a1a1a",
+      "--bn-colors-editor-text": "#ffffff",
+    },
+  }}
+/>
+```
+
+---
+
+### `formattingToolbar`
+
+- **타입**: `boolean`
+- **기본값**: `true`
+- **설명**: 서식 툴바 표시 (텍스트 선택 시 나타나는 툴바)
+
+```tsx
+<LumirEditor formattingToolbar={false} />
+```
+
+---
+
+### `linkToolbar`
+
+- **타입**: `boolean`
+- **기본값**: `true`
+- **설명**: 링크 툴바 표시 (링크 클릭 시 나타나는 편집 툴바)
+
+```tsx
+<LumirEditor linkToolbar={false} />
+```
+
+---
+
+### `sideMenu`
+
+- **타입**: `boolean`
+- **기본값**: `true`
+- **설명**: 사이드 메뉴 표시 (왼쪽의 드래그 핸들)
+
+```tsx
+<LumirEditor sideMenu={false} />
+```
+
+---
+
+### `sideMenuAddButton`
+
+- **타입**: `boolean`
+- **기본값**: `false`
+- **설명**: 사이드 메뉴의 + 버튼 표시
+
+```tsx
+// + 버튼과 드래그 핸들 모두 표시
+<LumirEditor sideMenuAddButton={true} />
+
+// 드래그 핸들만 표시 (기본)
+<LumirEditor sideMenuAddButton={false} />
+```
+
+---
+
+### `emojiPicker`
+
+- **타입**: `boolean`
+- **기본값**: `true`
+- **설명**: 이모지 선택기 표시
+
+```tsx
+<LumirEditor emojiPicker={false} />
+```
+
+---
+
+### `filePanel`
+
+- **타입**: `boolean`
+- **기본값**: `true`
+- **설명**: 파일 패널 표시 (이미지/비디오 블록의 옵션 패널)
+
+```tsx
+<LumirEditor filePanel={false} />
+```
+
+---
+
+### `tableHandles`
+
+- **타입**: `boolean`
+- **기본값**: `true`
+- **설명**: 테이블 핸들 표시 (행/열 추가/삭제 버튼)
+
+```tsx
+<LumirEditor tableHandles={false} />
+```
+
+---
+
+### `className`
+
+- **타입**: `string`
+- **기본값**: `""`
+- **설명**: 에디터 컨테이너의 CSS 클래스
+
+```tsx
+<LumirEditor className="my-custom-editor border rounded-lg shadow-md" />
+```
+
+---
+
+## 6️⃣ 콜백 함수
+
+### `onContentChange`
+
+- **타입**: `(blocks: DefaultPartialBlock[]) => void`
+- **기본값**: `undefined`
+- **설명**: 콘텐츠가 변경될 때마다 호출됩니다.
+
+```tsx
+const [content, setContent] = useState<DefaultPartialBlock[]>([]);
+
+<LumirEditor
+  onContentChange={(blocks) => {
+    setContent(blocks);
+
+    // 자동 저장
+    localStorage.setItem("draft", JSON.stringify(blocks));
+
+    // 서버에 저장
+    saveToDB(blocks);
+  }}
+/>;
+```
+
+**blocks 구조 예시**:
+
+```json
+[
+  {
+    "id": "block-1",
+    "type": "paragraph",
+    "props": {
+      "textColor": "default",
+      "backgroundColor": "default",
+      "textAlignment": "left"
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "안녕하세요",
+        "styles": { "bold": true }
+      }
+    ],
+    "children": []
+  }
+]
+```
+
+---
+
+### `onSelectionChange`
+
+- **타입**: `() => void`
+- **기본값**: `undefined`
+- **설명**: 텍스트 선택 영역이 변경될 때 호출됩니다.
+
+```tsx
+<LumirEditor
+  onSelectionChange={() => {
+    console.log("선택 영역이 변경되었습니다");
+  }}
+/>
+```
+
+---
+
+## 📊 Props 조합 예시
+
+### 간단한 텍스트 에디터
+
+```tsx
+<LumirEditor
+  disableExtensions={["image", "video", "audio", "file", "table"]}
+  formattingToolbar={true}
+  linkToolbar={true}
+  onContentChange={handleChange}
+/>
+```
+
+### 이미지 전용 에디터
+
+```tsx
+<LumirEditor
+  disableExtensions={["video", "audio", "file", "table", "codeBlock"]}
+  s3Upload={{
+    apiEndpoint: "/api/s3/presigned",
+    env: "production",
+    path: "images",
+    appendUUID: true,
+  }}
+  onContentChange={handleChange}
+/>
+```
+
+### 읽기 전용 뷰어
+
+```tsx
+<LumirEditor
+  editable={false}
+  initialContent={savedContent}
+  formattingToolbar={false}
+  sideMenu={false}
+  className="viewer-mode"
+/>
+```
+
+### 풀 기능 에디터
+
+```tsx
+<LumirEditor
+  initialContent={draft}
+  s3Upload={{
+    apiEndpoint: "/api/s3/presigned",
+    env: "production",
+    path: "documents",
+  }}
+  allowVideoUpload={true}
+  allowAudioUpload={true}
+  tables={{
+    splitCells: true,
+    cellBackgroundColor: true,
+    cellTextColor: true,
+    headers: true,
+  }}
+  heading={{ levels: [1, 2, 3] }}
+  onContentChange={autoSave}
+  className="h-[600px]"
+/>
 ```
 
 </details>
@@ -475,7 +1138,7 @@ import { LumirEditor, cn } from "@lumir-company/editor";
   className={cn(
     "min-h-[400px] rounded-xl",
     "border border-gray-200 shadow-lg",
-    "focus-within:ring-2 focus-within:ring-blue-500"
+    "focus-within:ring-2 focus-within:ring-blue-500",
   )}
 />;
 ```
@@ -499,6 +1162,284 @@ import { LumirEditor, cn } from "@lumir-company/editor";
 ```tsx
 <LumirEditor className="my-editor" />
 ```
+
+---
+
+## 📘 TypeScript 타입 정의 전체
+
+<details>
+<summary><strong>전체 인터페이스 보기 (복사/붙여넣기 가능)</strong></summary>
+
+```typescript
+import type { DefaultPartialBlock } from "@lumir-company/editor";
+
+// ============================================
+// LumirEditor Props 인터페이스
+// ============================================
+
+interface LumirEditorProps {
+  // ===== 초기 콘텐츠 설정 =====
+
+  /** 초기 콘텐츠 (블록 배열, JSON 문자열, 또는 텍스트) */
+  initialContent?: DefaultPartialBlock[] | string;
+
+  /** 빈 콘텐츠일 때 생성할 빈 블록 개수 (기본: 3) */
+  initialEmptyBlocks?: number;
+
+  // ===== 파일 업로드 설정 =====
+
+  /** 커스텀 파일 업로드 함수 (URL 반환) */
+  uploadFile?: (file: File) => Promise<string>;
+
+  /** AWS S3 업로드 설정 */
+  s3Upload?: {
+    /** Presigned URL API 엔드포인트 */
+    apiEndpoint: string;
+
+    /** 환경 설정 */
+    env: "development" | "production";
+
+    /** S3 버킷 내 경로 (예: "uploads/images") */
+    path: string;
+
+    /** 파일명 변환 함수 (확장자 제외한 이름 받음) */
+    fileNameTransform?: (nameWithoutExt: string, file: File) => string;
+
+    /** UUID 자동 추가 여부 (기본: false) */
+    appendUUID?: boolean;
+
+    /** 확장자 보존 여부 (기본: true) */
+    preserveExtension?: boolean;
+  };
+
+  /** 비디오 업로드 허용 (기본: false) */
+  allowVideoUpload?: boolean;
+
+  /** 오디오 업로드 허용 (기본: false) */
+  allowAudioUpload?: boolean;
+
+  /** 일반 파일 업로드 허용 (기본: false) */
+  allowFileUpload?: boolean;
+
+  // ===== 블록 기능 설정 =====
+
+  /** 테이블 블록 세부 기능 설정 */
+  tables?: {
+    /** 셀 분할/병합 기능 (기본: true) */
+    splitCells?: boolean;
+
+    /** 셀 배경색 변경 (기본: true) */
+    cellBackgroundColor?: boolean;
+
+    /** 셀 텍스트 색상 변경 (기본: true) */
+    cellTextColor?: boolean;
+
+    /** 헤더 행/열 기능 (기본: true) */
+    headers?: boolean;
+  };
+
+  /** 사용 가능한 헤딩 레벨 (기본: [1,2,3,4,5,6]) */
+  heading?: {
+    levels?: (1 | 2 | 3 | 4 | 5 | 6)[];
+  };
+
+  /** BlockNote 기본 스타일 적용 여부 (기본: true) */
+  defaultStyles?: boolean;
+
+  /** 비활성화할 블록 타입 목록 (예: ["image", "video"]) */
+  disableExtensions?: string[];
+
+  /** Tab 키 동작 (기본: "prefer-navigate-ui") */
+  tabBehavior?: "prefer-navigate-ui" | "prefer-indent";
+
+  /** 문서 끝에 빈 블록 자동 추가 (기본: true) */
+  trailingBlock?: boolean;
+
+  // ===== UI 표시 설정 =====
+
+  /** 편집 가능 여부 (기본: true) */
+  editable?: boolean;
+
+  /** 에디터 테마 (기본: "light") */
+  theme?:
+    | "light"
+    | "dark"
+    | Partial<Record<string, unknown>>
+    | {
+        light: Partial<Record<string, unknown>>;
+        dark: Partial<Record<string, unknown>>;
+      };
+
+  /** 서식 툴바 표시 - 텍스트 선택 시 (기본: true) */
+  formattingToolbar?: boolean;
+
+  /** 링크 툴바 표시 - 링크 클릭 시 (기본: true) */
+  linkToolbar?: boolean;
+
+  /** 사이드 메뉴 표시 - 드래그 핸들 (기본: true) */
+  sideMenu?: boolean;
+
+  /** 사이드 메뉴 + 버튼 표시 (기본: false) */
+  sideMenuAddButton?: boolean;
+
+  /** 이모지 선택기 표시 (기본: true) */
+  emojiPicker?: boolean;
+
+  /** 파일 패널 표시 - 미디어 옵션 (기본: true) */
+  filePanel?: boolean;
+
+  /** 테이블 핸들 표시 - 행/열 추가 (기본: true) */
+  tableHandles?: boolean;
+
+  /** 컨테이너 CSS 클래스 */
+  className?: string;
+
+  // ===== 콜백 함수 =====
+
+  /** 콘텐츠 변경 시 호출되는 함수 */
+  onContentChange?: (blocks: DefaultPartialBlock[]) => void;
+
+  /** 선택 영역 변경 시 호출되는 함수 */
+  onSelectionChange?: () => void;
+}
+
+// ============================================
+// 블록 구조 타입 (참고용)
+// ============================================
+
+interface DefaultPartialBlock {
+  /** 블록 고유 ID (자동 생성) */
+  id?: string;
+
+  /** 블록 타입 */
+  type:
+    | "paragraph"
+    | "heading"
+    | "bulletList"
+    | "numberedList"
+    | "checkList"
+    | "table"
+    | "image"
+    | "video"
+    | "audio"
+    | "file"
+    | "codeBlock";
+
+  /** 블록 속성 */
+  props?: {
+    textColor?: string;
+    backgroundColor?: string;
+    textAlignment?: "left" | "center" | "right" | "justify";
+    level?: 1 | 2 | 3 | 4 | 5 | 6; // heading용
+    [key: string]: any;
+  };
+
+  /** 블록 콘텐츠 (텍스트, 링크 등) */
+  content?: InlineContent[];
+
+  /** 하위 블록 (중첩 구조) */
+  children?: DefaultPartialBlock[];
+}
+
+interface InlineContent {
+  /** 콘텐츠 타입 */
+  type: "text" | "link";
+
+  /** 텍스트 내용 */
+  text: string;
+
+  /** 텍스트 스타일 */
+  styles?: {
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    strikethrough?: boolean;
+    code?: boolean;
+    [key: string]: any;
+  };
+
+  /** 링크 URL (type="link"일 때) */
+  href?: string;
+}
+
+// ============================================
+// S3 업로드 설정 타입 (상세)
+// ============================================
+
+interface S3UploadConfig {
+  /** Presigned URL을 생성하는 API 엔드포인트 */
+  apiEndpoint: string;
+
+  /** 환경 설정 (로깅 레벨 등에 영향) */
+  env: "development" | "production";
+
+  /** S3 버킷 내 저장 경로 */
+  path: string;
+
+  /**
+   * 파일명 변환 함수
+   * @param nameWithoutExt - 확장자를 제외한 파일명
+   * @param file - 원본 File 객체
+   * @returns 변환된 파일명 (확장자 제외)
+   */
+  fileNameTransform?: (
+    nameWithoutExt: string,
+    file: File
+  ) => string;
+
+  /**
+   * UUID 자동 추가 여부
+   * true일 경우: "filename_abc123.png" 형태로 저장
+   */
+  appendUUID?: boolean;
+
+  /**
+   * 확장자 보존 여부
+   * false로 설정하면 확장자가 자동으로 붙지 않음
+   */
+  preserveExtension?: boolean;
+}
+
+// ============================================
+// 사용 예시
+// ============================================
+
+const Example: React.FC = () => {
+  const [content, setContent] = useState<DefaultPartialBlock[]>([]);
+
+  return (
+    <LumirEditor
+      initialContent={[
+        {
+          type: "paragraph",
+          props: {
+            textColor: "default",
+            backgroundColor: "default",
+            textAlignment: "left",
+          },
+          content: [
+            {
+              type: "text",
+              text: "안녕하세요!",
+              styles: { bold: true },
+            },
+          ],
+        },
+      ]}
+      s3Upload={{
+        apiEndpoint: "/api/s3/presigned",
+        env: "production",
+        path: "uploads",
+        appendUUID: true,
+      }}
+      onContentChange={setContent}
+      className="h-[500px]"
+    />
+  );
+};
+```
+
+</details>
 
 ---
 
@@ -536,7 +1477,7 @@ import { LumirEditor } from "@lumir-company/editor";
 const LumirEditor = dynamic(
   () =>
     import("@lumir-company/editor").then((m) => ({ default: m.LumirEditor })),
-  { ssr: false }
+  { ssr: false },
 );
 ```
 
@@ -610,6 +1551,57 @@ const url = await uploader(imageFile);
 ---
 
 ## 변경 로그
+
+### v0.3.5 (2025-01-12)
+
+**📚 문서화 대폭 개선**
+
+- ✅ **전체 Props 빠른 참조표 추가**
+  - 26개 모든 props를 5개 카테고리별 표로 정리
+  - 타입, 기본값, 설명을 한눈에 확인 가능
+- ✅ **TypeScript 타입 정의 전체 추가**
+  - 복사/붙여넣기 가능한 완전한 인터페이스
+  - 모든 필드에 주석 설명 포함
+  - 사용 예시 코드 포함
+- ✅ **Props 상세 매뉴얼 작성**
+  - 각 prop마다 타입, 기본값, 상세 설명 제공
+  - 실제 사용 가능한 코드 예시 다수 포함
+  - 주의사항 및 제약사항 명시
+  - Props 조합 예시 4가지 (텍스트 전용, 이미지 전용, 읽기 전용, 풀 기능)
+
+**🐛 버그 수정**
+
+- ✅ **disableExtensions 옵션 수정**
+  - 슬래시 메뉴 필터링이 하드코딩되어 있던 문제 해결
+  - 이제 `disableExtensions={["image"]}`가 정상 작동
+  - 슬래시 메뉴에서 비활성화된 블록 타입이 올바르게 제거됨
+
+**📖 문서 구조**
+
+```
+README.md
+├─ 빠른 시작
+├─ 이미지 업로드
+│
+├─ 📋 전체 Props 빠른 참조표 ⭐ NEW
+│   └─ 5개 카테고리 × 26개 props 표
+│
+├─ 📚 전체 Props 상세 매뉴얼 ⭐ NEW
+│   ├─ 초기 콘텐츠 설정
+│   ├─ 파일 업로드 설정
+│   ├─ 미디어 업로드 허용
+│   ├─ 블록 기능 설정
+│   ├─ UI 설정
+│   └─ 콜백 함수
+│
+├─ 📘 TypeScript 타입 정의 전체 ⭐ NEW
+│   ├─ LumirEditorProps (완전한 인터페이스)
+│   ├─ DefaultPartialBlock (블록 구조)
+│   ├─ InlineContent (콘텐츠 구조)
+│   └─ S3UploadConfig (상세 타입)
+│
+└─ 트러블슈팅
+```
 
 ### v0.4.1
 
